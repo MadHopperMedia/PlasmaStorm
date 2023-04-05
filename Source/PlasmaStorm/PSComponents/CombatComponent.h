@@ -96,6 +96,7 @@ protected:
 	void AimAssist(float DeltaTime, FHitResult& HitResult);
 	void PlayEquippedWeaponZoomSound();
 	void PlayEquippedWeaponUnZoomSound();
+	void Melee();
 
 private:
 	UPROPERTY()

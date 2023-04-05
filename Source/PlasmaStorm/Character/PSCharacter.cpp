@@ -975,4 +975,8 @@ void APSCharacter::MeleeButtonPressed()
 	{
 		JumpButtonPressed();
 	}
+	else if (Combat && Combat->EquippedWeapon)
+	{
+		Combat->Melee();
+	}
 }

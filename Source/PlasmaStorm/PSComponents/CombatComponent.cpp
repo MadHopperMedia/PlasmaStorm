@@ -1060,3 +1060,7 @@ void UCombatComponent::PlayEquippedWeaponUnZoomSound()
 	}
 }
 
+void UCombatComponent::Melee()
+{
+
+}
