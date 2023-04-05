@@ -64,6 +64,7 @@ protected:
 	void PlayerRoll(float Val);
 	void PlayerCrouch();
 	void EquipButtonPressed();
+	void EquipButtonReleased();
 	void AimButtonPressed();
 	void AimButtonReleased();
 	void AimOffset(float DeltaTime);
@@ -86,7 +87,7 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	class UWidgetComponent* OverheadWidget;
 
-	UPROPERTY(ReplicatedUsing = OnRep_OverlappingWeapon)
+	UPROPERTY(ReplicatedUsing = OnRep_OverlappingWeapon, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	class AWeapon* OverlappingWeapon;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
@@ -108,7 +109,15 @@ private:
 	void OnRep_OverlappingWeapon(AWeapon* LastWeapon);
 
 	UFUNCTION(Server, Reliable)
-	void ServerEquipButtonPressed();
+	void ServerEquipButtonPressed(bool IsEquipingWeapon);
+
+
+	FTimerHandle EquipTimer;
+
+	UPROPERTY(EditAnywhere)
+	float EquipDelay = 0.5f;
+
+	void EquipTimerFinished();
 	void HideCharacterIfCharacterClose();
 
 	float Ao_Yaw;
@@ -123,7 +132,8 @@ private:
 	
 	bool PitchingUp;
 	bool PitchingDown;
-	bool bInverted = false;
+	bool bInverted = false;	
+	bool EquippingWeapon = false;
 	
 	UFUNCTION()
 	void OnRep_AoPitch();

@@ -67,6 +67,7 @@ void APSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACTFPawn::StopJump);
 	PlayerInputComponent->BindAction("Crouch", IE_Pressed, this, &ACTFPawn::Crouch);
 	PlayerInputComponent->BindAction("Equip", IE_Pressed, this, &APSCharacter::EquipButtonPressed);
+	PlayerInputComponent->BindAction("Equip", IE_Released, this, &APSCharacter::EquipButtonReleased);
 	PlayerInputComponent->BindAction("Aim", IE_Pressed, this, &APSCharacter::AimButtonPressed);
 	PlayerInputComponent->BindAction("Aim", IE_Released, this, &APSCharacter::AimButtonReleased);
 	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &APSCharacter::FireButtonPressed);
@@ -328,26 +329,69 @@ void APSCharacter::EquipButtonPressed()
 {	
 	if (Combat && Combat->CombatState == ECombatState::ECS_Unoccupied && !bIsFlying)
 	{
+		if (OverlappingWeapon)
+		{
+			EquippingWeapon = true;
+			GetWorldTimerManager().SetTimer(
+				EquipTimer,
+				this,
+				&APSCharacter::EquipTimerFinished,
+				EquipDelay);
+			return;
+			//uippingWeapon = true;
+			//rverEquipButtonPressed(true);
+		}
+		else
+		{
+			EquippingWeapon = false;
+			ServerEquipButtonPressed(false);
+		}
+		
 		if (Combat->bAiming)
 		{
 			Combat->SetAiming(false);
 		}
-		ServerEquipButtonPressed();
+		
 	}	
 }
 
-void APSCharacter::ServerEquipButtonPressed_Implementation()
+void APSCharacter::EquipTimerFinished()
 {
-	if (Combat)
+	if (Combat && Combat->CombatState == ECombatState::ECS_Unoccupied && !bIsFlying)
 	{
-		if (OverlappingWeapon)
+		EquippingWeapon = false;
+		ServerEquipButtonPressed(true);
+	}
+
+
+}
+
+void APSCharacter::EquipButtonReleased()
+{
+	if (EquippingWeapon && Combat && Combat->CombatState == ECombatState::ECS_Unoccupied && !bIsFlying)
+	{
+		GetWorldTimerManager().ClearTimer(EquipTimer);
+		ServerEquipButtonPressed(false);
+		EquippingWeapon = false;
+	}
+	
+}
+
+void APSCharacter::ServerEquipButtonPressed_Implementation(bool IsEquipingWeapon)
+{
+	EquippingWeapon = IsEquipingWeapon;
+	if (Combat && HasAuthority())
+	{
+		if (OverlappingWeapon && EquippingWeapon == true)
 		{
-			Combat->EquipWeapon(OverlappingWeapon);
+			EquippingWeapon = false;
+			Combat->EquipWeapon(OverlappingWeapon);			
 		}
-		else if(Combat->ShouldSwapWeapons())
+		else if (Combat->ShouldSwapWeapons())
 		{
+			EquippingWeapon = false;
 			Combat->SwapWeapons();
-		}		
+		}
 	}
 }
 
@@ -672,9 +716,7 @@ void APSCharacter::PlayHitReactMontage()
 		AnimInstance->Montage_Play(HitReactMontage);		
 		FName SectionName("FromFront");
 		AnimInstance->Montage_JumpToSection(SectionName);
-	}
-	
-	
+	}	
 }
 
 FVector APSCharacter::GetHitTarget() const

@@ -185,7 +185,7 @@ void AWeapon::ShowPickupWidget(bool bShowWidget)
 {
 	if (PickupWidget)
 	{
-		PickupWidget->SetVisibility(bShowWidget);
+		//PickupWidget->SetVisibility(bShowWidget);
 	}
 }
 
