@@ -13,3 +13,5 @@ Saved
 *.xcodeproj
 *.xcworkspace
 *.log
+Build/Windows/FileOpenOrder/EditorOpenOrder.log
+Build/Windows/FileOpenOrder/CookerOpenOrder.log
