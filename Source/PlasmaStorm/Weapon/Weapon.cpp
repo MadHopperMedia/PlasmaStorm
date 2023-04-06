@@ -167,7 +167,8 @@ void AWeapon::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* 
 {
 	APSCharacter* PSCharacter = Cast<APSCharacter>(OtherActor);
 	if (PSCharacter)
-	{		
+	{	
+		if (PSCharacter->GetEquippedWeapons() && PSCharacter->GetEquippedWeapons()->GetWeaponName() == WeaponName || PSCharacter->GetSecondaryWeapons() && PSCharacter->GetSecondaryWeapons()->GetWeaponName() == WeaponName) return;
 		PSCharacter->SetOverlappingWeapon(this);
 	}
 }

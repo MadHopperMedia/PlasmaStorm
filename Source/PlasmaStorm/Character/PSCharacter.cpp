@@ -294,6 +294,30 @@ void APSCharacter::JumpButtonPressed()
 	Jump();
 }
 
+AWeapon* APSCharacter::GetEquippedWeapons()
+{
+	if (Combat && Combat->EquippedWeapon)
+	{
+		return Combat->EquippedWeapon;
+	}
+	else
+	{
+		return nullptr;
+	}
+}
+
+AWeapon* APSCharacter::GetSecondaryWeapons()
+{
+	if (Combat && Combat->SecondaryWeapon)
+	{
+		return Combat->SecondaryWeapon;
+	}
+	else
+	{
+		return nullptr;
+	}
+}
+
 void APSCharacter::SetOverlappingWeapon(AWeapon* Weapon)
 {
 	if (OverlappingWeapon)

@@ -69,6 +69,10 @@ protected:
 	void SetInverted(bool Inverted);
 	UFUNCTION(BlueprintCallable)
 	void SetToggleBoost(bool ToggleBoost);
+
+	void HighPingWarning();
+	void StopHighPingWarning();
+	void CheckPing(float DeltaTime);
 	
 
 private:
@@ -113,6 +117,17 @@ private:
 	float HUDStamina;
 	bool bInitializeStamina = false;
 	float HUDMaxStamina;
+
+	float HighPingRunningTime = 0.f;
+	UPROPERTY(EditAnywhere)
+	float HighPingDuration = 5.f;
+
+	float PingAnimationRunningtime = 0.f;
+
+	UPROPERTY(EditAnywhere)
+	float CheckPingFrenquency = 20.f;
+	UPROPERTY(EditAnywhere)
+	float HighPingThreshold = 50.f;
 	
 	
 public:

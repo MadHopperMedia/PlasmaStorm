@@ -15,6 +15,7 @@
 #include "PlasmaStorm/PSComponents/CombatComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundCue.h"
+#include "Components/Image.h"
 
 
 
@@ -40,6 +41,34 @@ void APSPlayerController::Tick(float DeltaTime)
 	SetHUDTime();
 	CheckTimeSync(DeltaTime);
 	PollInit();
+	CheckPing(DeltaTime);
+	
+}
+
+void APSPlayerController::CheckPing(float DeltaTime)
+{
+	HighPingRunningTime += DeltaTime;
+	if (HighPingRunningTime > CheckPingFrenquency)
+	{
+		PlayerState = PlayerState == nullptr ? GetPlayerState<APlayerState>() : PlayerState;
+		if (PlayerState)
+		{
+			if (PlayerState->GetPing() * 4 > HighPingThreshold) // Ping is compressed; it's actually ping / 4
+			{
+				HighPingWarning();
+				PingAnimationRunningtime = 0.f;
+			}
+		}
+		HighPingRunningTime = 0.f;
+	}
+	if (PSHUD && PSHUD->CharacterOverlay && PSHUD->CharacterOverlay->HighPingAnimation && PSHUD->CharacterOverlay->IsAnimationPlaying(PSHUD->CharacterOverlay->HighPingAnimation))
+	{
+		PingAnimationRunningtime += DeltaTime;
+		if (PingAnimationRunningtime > HighPingDuration)
+		{
+			StopHighPingWarning();
+		}
+	}
 }
 
 void APSPlayerController::PollInit()
@@ -481,5 +510,30 @@ void APSPlayerController::SetToggleBoost(bool ToggleBoost)
 		PSCharacter->SetToggleBoost(ToggleBoost);
 	}
 		
+}
+
+void APSPlayerController::HighPingWarning()
+{
+	PSHUD = PSHUD == nullptr ? Cast<APSHud>(GetHUD()) : PSHUD;
+	if (PSHUD && PSHUD->CharacterOverlay && PSHUD->CharacterOverlay->HighPingImage && PSHUD->CharacterOverlay->HighPingAnimation)
+	{
+		PSHUD->CharacterOverlay->HighPingImage->SetOpacity(1.f);
+		PSHUD->CharacterOverlay->PlayAnimation(PSHUD->CharacterOverlay->HighPingAnimation,
+			0.f,
+			5.f);
+	}
+}
+
+void APSPlayerController::StopHighPingWarning()
+{
+	PSHUD = PSHUD == nullptr ? Cast<APSHud>(GetHUD()) : PSHUD;
+	if (PSHUD && PSHUD->CharacterOverlay && PSHUD->CharacterOverlay->HighPingImage && PSHUD->CharacterOverlay->HighPingAnimation)
+	{
+		PSHUD->CharacterOverlay->HighPingImage->SetOpacity(0.f);
+		if (PSHUD->CharacterOverlay->IsAnimationPlaying(PSHUD->CharacterOverlay->HighPingAnimation))
+		{
+			PSHUD->CharacterOverlay->StopAnimation(PSHUD->CharacterOverlay->HighPingAnimation);
+		}		
+	}
 }
 

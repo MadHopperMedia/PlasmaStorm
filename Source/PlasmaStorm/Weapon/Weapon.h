@@ -99,6 +99,9 @@ protected:
 
 	bool bIsAiming = false;
 
+	UPROPERTY(EditAnywhere)
+	FName WeaponName;
+
 private:
 
 	UPROPERTY(VisibleAnywhere, Category = "Weapon Properties")
@@ -163,4 +166,6 @@ public:
 	FORCEINLINE float GetTraceRadious() const { return TraceRadious; }
 	FORCEINLINE void SetTarget(APSCharacter* CurrentTarget) { Target = CurrentTarget; }
 	FORCEINLINE void GetIsAiming(bool Aiming) { bIsAiming = Aiming; }
+	UFUNCTION(BlueprintCallable)
+	FORCEINLINE FName GetWeaponName() const { return WeaponName; }
 };

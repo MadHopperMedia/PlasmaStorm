@@ -67,7 +67,7 @@ protected:
 	UFUNCTION(Server, Reliable)
 	void ServerReload();
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		float CrosshairOffset = 0.0f;
+	float CrosshairOffset = 0.0f;
 
 	void HandleReload();
 	int32 AmountToReload();

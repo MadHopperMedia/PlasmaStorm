@@ -323,6 +323,8 @@ public:
 	FORCEINLINE USceneComponent* GetTarget() const { return Target; }
 	FORCEINLINE void SetTargetCharacter(APSCharacter* CurrentTarget) { TargetCharacter = CurrentTarget; }
 	FORCEINLINE APSCharacter* GetTargetCharacter() { return TargetCharacter; }
+	AWeapon* GetEquippedWeapons();
+	AWeapon* GetSecondaryWeapons();
 	
 	
 	

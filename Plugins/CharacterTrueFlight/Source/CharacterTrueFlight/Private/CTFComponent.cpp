@@ -274,13 +274,13 @@ void UCTFComponent::AddYawRotation(float DeltaTime)
 	{
 		if (bCanTransitionFlight)
 		{
-			MDPS = 60;
+			MDPS = 140;
 		}
 		else
 		{
-			MDPS = 180;
+			MDPS = 260;
 		}
-		YawInputRunup = FMath::FInterpTo(YawInputRunup, YawInput, DeltaTime, 2.0f);
+		YawInputRunup = FMath::FInterpTo(YawInputRunup, YawInput, DeltaTime, 4.0f);
 		
 	}
 	else
