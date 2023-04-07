@@ -19,6 +19,16 @@ enum class EWeaponState : uint8
 EWS_Max UMETA(DisplayName = "DefaultMax")
 };
 
+UENUM(BlueprintType)
+enum class EFireType : uint8
+{
+	EFT_HitScan UMETA(DisplayName = "Hit Scan Weapon"),
+	EFT_Projectile UMETA(DisplayName = "Projectile Weapon"),
+	EFT_Shotgun UMETA(DisplayName = "Shotgun Weapon"),
+
+	EFT_MAX UMETA(DisplayName = "DefaultMAX")
+};
+
 
 UCLASS()
 class PLASMASTORM_API AWeapon : public AActor
@@ -65,6 +75,12 @@ public:
 
 	UPROPERTY(EditAnywhere)
 	class USoundCue* UnZoomSound;
+	UPROPERTY(EditAnywhere)
+	EFireType FireType;
+
+	UPROPERTY(EditAnywhere, Category = "WeaponScatter")
+	bool bUseScatter = false;
+	FVector TraceEndWithScatter(const FVector& HitTarget);
 protected:
 	
 	virtual void BeginPlay() override;
@@ -98,9 +114,16 @@ protected:
 	);
 
 	bool bIsAiming = false;
-
 	UPROPERTY(EditAnywhere)
 	FName WeaponName;
+
+	/**
+* Trace end with scatter
+*/
+	UPROPERTY(EditAnywhere, Category = "WeaponScatter")
+		float DistanceToSphere = 800.f;
+	UPROPERTY(EditAnywhere, Category = "WeaponScatter")
+		float SphereRadious = 800.f;
 
 private:
 

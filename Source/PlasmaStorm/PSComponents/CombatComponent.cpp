@@ -217,7 +217,7 @@ bool UCombatComponent::ShouldSwapWeapons()
 
 void UCombatComponent::SwapWeapons()
 {
-	
+	if (CombatState != ECombatState::ECS_Unoccupied) return;
 	
 	AWeapon* TempWeapon = EquippedWeapon;
 	EquippedWeapon = SecondaryWeapon;
@@ -458,17 +458,48 @@ void UCombatComponent::Fire()
 			StartFireTimer();
 			return;
 		}
-		bCanFire = false;
-		ServerFire(HitTarget);
+		bCanFire = false;		
 		if (EquippedWeapon && !Character->GetIsFlying())
 		{
 			CrosshairShootingFactor = FMath::Clamp(CrosshairShootingFactor += .75f, .5f, 3.f);
+
+			switch (EquippedWeapon->FireType)
+			{
+			case EFireType::EFT_Projectile:
+				FireProjectileWeapon();
+				break;
+			case EFireType::EFT_HitScan:
+				FireHitScanWeapon();
+				break;
+			case EFireType::EFT_Shotgun:
+				FireShotgun();
+				break;
+			}
 		}
 		Character->AddRecoilOnFire(RecoilAmount);
-		StartFireTimer();
-
-		
+		StartFireTimer();		
 	}
+}
+
+void UCombatComponent::FireProjectileWeapon()
+{
+	ServerFire(HitTarget);
+	LocalFire(HitTarget);
+}
+
+void UCombatComponent::FireHitScanWeapon()
+{
+	if (EquippedWeapon)
+	{
+		HitTarget = EquippedWeapon->bUseScatter ? EquippedWeapon->TraceEndWithScatter(HitTarget) : HitTarget;
+		ServerFire(HitTarget);
+		LocalFire(HitTarget);
+	}
+}
+
+void UCombatComponent::FireShotgun()
+{
+
 }
 
 void UCombatComponent::StartFireTimer()
@@ -525,6 +556,12 @@ void UCombatComponent::ServerFire_Implementation(const FVector_NetQuantize& Trac
 
 void UCombatComponent::MulticastFire_Implementation(const FVector_NetQuantize& TraceHitTarget)
 {
+	if (Character && Character->IsLocallyControlled() && !Character->HasAuthority()) return;
+	LocalFire(TraceHitTarget);	
+}
+
+void UCombatComponent::LocalFire(const FVector_NetQuantize& TraceHitTarget)
+{
 	if (EquippedWeapon == nullptr) return;
 	if (Character && CombatState == ECombatState::ECS_Unoccupied)
 	{
@@ -536,7 +573,7 @@ void UCombatComponent::MulticastFire_Implementation(const FVector_NetQuantize& T
 		else
 		{
 			MountedWeapon->Fire(TraceHitTarget);
-			
+
 		}
 	}
 
@@ -548,7 +585,6 @@ void UCombatComponent::MulticastFire_Implementation(const FVector_NetQuantize& T
 	{
 		Character->SetTargetCharacter(nullptr);
 	}
-	
 }
 
 void UCombatComponent::TraceUnderCrosshairs(float DeltaTime)
