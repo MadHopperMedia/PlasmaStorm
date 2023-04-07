@@ -121,9 +121,9 @@ protected:
 * Trace end with scatter
 */
 	UPROPERTY(EditAnywhere, Category = "WeaponScatter")
-		float DistanceToSphere = 800.f;
+	float DistanceToSphere = 800.f;
 	UPROPERTY(EditAnywhere, Category = "WeaponScatter")
-		float SphereRadious = 800.f;
+	float SphereRadious = 80.f;
 
 private:
 

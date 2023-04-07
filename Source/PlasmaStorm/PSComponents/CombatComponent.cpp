@@ -17,6 +17,7 @@
 #include "Sound/SoundCue.h"
 #include "PlasmaStorm/Weapon/Projectile.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "PlasmaStorm/Weapon/Shotgun.h"
 
 
 // Sets default values for this component's properties
@@ -459,7 +460,7 @@ void UCombatComponent::Fire()
 			return;
 		}
 		bCanFire = false;		
-		if (EquippedWeapon && !Character->GetIsFlying())
+		if (EquippedWeapon)
 		{
 			CrosshairShootingFactor = FMath::Clamp(CrosshairShootingFactor += .75f, .5f, 3.f);
 
@@ -483,23 +484,35 @@ void UCombatComponent::Fire()
 
 void UCombatComponent::FireProjectileWeapon()
 {
-	ServerFire(HitTarget);
-	LocalFire(HitTarget);
+	if (EquippedWeapon && Character)
+	{
+		HitTarget = EquippedWeapon->bUseScatter ? EquippedWeapon->TraceEndWithScatter(HitTarget) : HitTarget;
+		ServerFire(HitTarget);
+		if(!Character->HasAuthority()) LocalFire(HitTarget);
+	}	
 }
 
 void UCombatComponent::FireHitScanWeapon()
 {
-	if (EquippedWeapon)
+	if (EquippedWeapon && Character)
 	{
 		HitTarget = EquippedWeapon->bUseScatter ? EquippedWeapon->TraceEndWithScatter(HitTarget) : HitTarget;
 		ServerFire(HitTarget);
-		LocalFire(HitTarget);
+		if (!Character->HasAuthority()) LocalFire(HitTarget);
 	}
 }
 
 void UCombatComponent::FireShotgun()
 {
-
+	
+	AShotgun* Shotgun = Cast<AShotgun>(EquippedWeapon);
+	if (Shotgun && Character)
+	{
+		TArray<FVector_NetQuantize> HitTargets;
+		Shotgun->ShotgunTraceEndWithScatter(HitTarget, HitTargets);
+		if (!Character->HasAuthority()) ShotgunLocalFire(HitTargets);
+		ServerShotgunFire(HitTargets);
+	}	
 }
 
 void UCombatComponent::StartFireTimer()
@@ -560,6 +573,17 @@ void UCombatComponent::MulticastFire_Implementation(const FVector_NetQuantize& T
 	LocalFire(TraceHitTarget);	
 }
 
+void UCombatComponent::ServerShotgunFire_Implementation(const TArray<FVector_NetQuantize>& TraceHitTargets)
+{
+	MulticastShotgunFire(TraceHitTargets);
+}
+
+void UCombatComponent::MulticastShotgunFire_Implementation(const TArray<FVector_NetQuantize>& TraceHitTargets)
+{
+	if (Character && Character->IsLocallyControlled() && !Character->HasAuthority()) return;
+	ShotgunLocalFire(TraceHitTargets);
+}
+
 void UCombatComponent::LocalFire(const FVector_NetQuantize& TraceHitTarget)
 {
 	if (EquippedWeapon == nullptr) return;
@@ -571,9 +595,8 @@ void UCombatComponent::LocalFire(const FVector_NetQuantize& TraceHitTarget)
 			EquippedWeapon->Fire(TraceHitTarget);
 		}
 		else
-		{
+		{			
 			MountedWeapon->Fire(TraceHitTarget);
-
 		}
 	}
 
@@ -584,6 +607,18 @@ void UCombatComponent::LocalFire(const FVector_NetQuantize& TraceHitTarget)
 	else
 	{
 		Character->SetTargetCharacter(nullptr);
+	}
+}
+
+void UCombatComponent::ShotgunLocalFire(const TArray<FVector_NetQuantize>& TraceHitTargets)
+{
+	AShotgun* Shotgun = Cast<AShotgun>(EquippedWeapon);
+	if (Shotgun == nullptr || Character == nullptr) return;
+	if (CombatState == ECombatState::ECS_Reloading || CombatState == ECombatState::ECS_Unoccupied)
+	{
+		Character->PlayFireMontage(bAiming);
+		Shotgun->FireShotgun(TraceHitTargets);
+		CombatState = ECombatState::ECS_Unoccupied;
 	}
 }
 

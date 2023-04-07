@@ -216,8 +216,7 @@ void AWeapon::Fire(const FVector& HitTarget)
 	if (HasAuthority())
 	{
 		SpendRound();	
-	}
-	
+	}	
 }
 
 void AWeapon::Dropped()
@@ -301,8 +300,8 @@ FVector AWeapon::TraceEndWithScatter(const FVector& HitTarget)
 
 	const USkeletalMeshSocket* MuzzleFlashSocket = GetWeaponMesh()->GetSocketByName("MuzzleFlash");
 	if (MuzzleFlashSocket == nullptr) return FVector();
-	FTransform SocketTransform = MuzzleFlashSocket->GetSocketTransform(GetWeaponMesh());
-	FVector TraceStart = SocketTransform.GetLocation();
+	const FTransform SocketTransform = MuzzleFlashSocket->GetSocketTransform(GetWeaponMesh());
+	const FVector TraceStart = SocketTransform.GetLocation();
 
 	float ScatterRadious = SphereRadious;
 	if (bIsAiming)
@@ -310,11 +309,11 @@ FVector AWeapon::TraceEndWithScatter(const FVector& HitTarget)
 		ScatterRadious = SphereRadious / 2;
 	}
 
-	FVector ToTargetNormalized = (HitTarget - TraceStart).GetSafeNormal();
-	FVector SphereCenter = TraceStart + ToTargetNormalized * DistanceToSphere;
-	FVector RandVec = UKismetMathLibrary::RandomUnitVector() * FMath::FRandRange(0.f, ScatterRadious);
-	FVector EndLoc = SphereCenter + RandVec;
-	FVector ToEndLoc = EndLoc - TraceStart;
+	const FVector ToTargetNormalized = (HitTarget - TraceStart).GetSafeNormal();
+	const FVector SphereCenter = TraceStart + ToTargetNormalized * DistanceToSphere;
+	const FVector RandVec = UKismetMathLibrary::RandomUnitVector() * FMath::FRandRange(0.f, ScatterRadious);
+	const FVector EndLoc = SphereCenter + RandVec;
+	const FVector ToEndLoc = EndLoc - TraceStart;
 
 	/*
 	DrawDebugSphere(GetWorld(), SphereCenter, SphereRadious, 12, FColor::Red, true);
