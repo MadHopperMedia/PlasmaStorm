@@ -16,11 +16,10 @@ class PLASMASTORM_API AHitScanWeapon : public AWeapon
 public:
 
 	virtual void Fire(const FVector& HitTarget) override;
-
+	
 protected:
 
-	FVector TraceEndWithScatter(const FVector& TraceStart, const FVector& HitTarget);
-
+	
 	void WeaponTraceHit(const FVector& TraceStart, const FVector& HitTarget, FHitResult& OutHit);
 	UPROPERTY(EditAnywhere)
 	float Damage = 20.f;
@@ -44,15 +43,8 @@ private:
 
 	
 
-	/**
-	* Trace end with scatter
-	*/
-	UPROPERTY(EditAnywhere, Category = "WeaponScatter")
-	float DistanceToSphere = 800.f;
-	UPROPERTY(EditAnywhere, Category = "WeaponScatter")
-	float SphereRadious = 800.f;
-	UPROPERTY(EditAnywhere, Category = "WeaponScatter")
-	bool bUseScatter = false;
+
+
 
 
 public:
