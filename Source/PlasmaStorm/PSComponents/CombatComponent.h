@@ -138,6 +138,7 @@ private:
 	float CrosshairShootingFactor;
 	FVector HitTarget;
 	FVector TraceTargetForWeaponRotation;
+	UPROPERTY(Replicated)
 	class APSCharacter* TargetCharacter;
 	float WeaponRange;
 	float DefaultFOV;

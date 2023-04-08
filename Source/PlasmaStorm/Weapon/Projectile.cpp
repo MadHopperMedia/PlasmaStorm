@@ -57,7 +57,7 @@ void AProjectile::BeginPlay()
 		CollisionBox->OnComponentHit.AddDynamic(this, &AProjectile::OnHit);
 	}
 
-	/*APSCharacter* OwningCharacter = Cast<APSCharacter>(GetOwner());
+	APSCharacter* OwningCharacter = Cast<APSCharacter>(GetOwner());
 	if (OwningCharacter)
 	{
 		CurrentTarget = OwningCharacter->GetTargetCharacter();
@@ -68,12 +68,12 @@ void AProjectile::BeginPlay()
 	{
 		ProjectileMovementComponent->HomingTargetComponent = CurrentTarget->GetTarget();
 	}
-	*/
+	
 }
 
 void AProjectile::SetTarget(APSCharacter* Target)
 {
-	//CurrentTarget = Target;
+	CurrentTarget = Target;
 	
 
 }

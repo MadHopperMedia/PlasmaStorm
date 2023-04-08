@@ -38,7 +38,8 @@ void UCombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	DOREPLIFETIME(UCombatComponent, bAiming);
 	DOREPLIFETIME_CONDITION(UCombatComponent, CarriedAmmo, COND_OwnerOnly);
 	DOREPLIFETIME(UCombatComponent, CombatState);
-	DOREPLIFETIME(UCombatComponent, Grenades);
+	DOREPLIFETIME(UCombatComponent, Grenades); 
+	DOREPLIFETIME(UCombatComponent, TargetCharacter);
 }
 
 void UCombatComponent::BeginPlay()
@@ -463,19 +464,37 @@ void UCombatComponent::Fire()
 		if (EquippedWeapon)
 		{
 			CrosshairShootingFactor = FMath::Clamp(CrosshairShootingFactor += .75f, .5f, 3.f);
-
-			switch (EquippedWeapon->FireType)
+			if (!Character->GetIsFlying())
 			{
-			case EFireType::EFT_Projectile:
-				FireProjectileWeapon();
-				break;
-			case EFireType::EFT_HitScan:
-				FireHitScanWeapon();
-				break;
-			case EFireType::EFT_Shotgun:
-				FireShotgun();
-				break;
+				switch (EquippedWeapon->FireType)
+				{
+				case EFireType::EFT_Projectile:
+					FireProjectileWeapon();
+					break;
+				case EFireType::EFT_HitScan:
+					FireHitScanWeapon();
+					break;
+				case EFireType::EFT_Shotgun:
+					FireShotgun();
+					break;
+				}
 			}
+			else
+			{
+				switch (MountedWeapon->FireType)
+				{
+				case EFireType::EFT_Projectile:
+					FireProjectileWeapon();
+					break;
+				case EFireType::EFT_HitScan:
+					FireHitScanWeapon();
+					break;
+				case EFireType::EFT_Shotgun:
+					FireShotgun();
+					break;
+				}
+			}
+			
 		}
 		Character->AddRecoilOnFire(RecoilAmount);
 		StartFireTimer();		
@@ -484,35 +503,72 @@ void UCombatComponent::Fire()
 
 void UCombatComponent::FireProjectileWeapon()
 {
-	if (EquippedWeapon && Character)
+	if (!Character->GetIsFlying())
 	{
-		HitTarget = EquippedWeapon->bUseScatter ? EquippedWeapon->TraceEndWithScatter(HitTarget) : HitTarget;
-		ServerFire(HitTarget);
-		if(!Character->HasAuthority()) LocalFire(HitTarget);
-	}	
+		if (EquippedWeapon && Character)
+		{
+			HitTarget = EquippedWeapon->bUseScatter ? MountedWeapon->TraceEndWithScatter(HitTarget) : HitTarget;
+			ServerFire(HitTarget);
+			if (!Character->HasAuthority()) LocalFire(HitTarget);
+		}
+	}
+	else
+	{
+		if (MountedWeapon && Character)
+		{
+			HitTarget = MountedWeapon->bUseScatter ? MountedWeapon->TraceEndWithScatter(HitTarget) : HitTarget;
+			ServerFire(HitTarget);
+			if (!Character->HasAuthority()) LocalFire(HitTarget);
+		}
+	}
 }
 
 void UCombatComponent::FireHitScanWeapon()
 {
-	if (EquippedWeapon && Character)
+	if (!Character->GetIsFlying())
 	{
-		HitTarget = EquippedWeapon->bUseScatter ? EquippedWeapon->TraceEndWithScatter(HitTarget) : HitTarget;
-		ServerFire(HitTarget);
-		if (!Character->HasAuthority()) LocalFire(HitTarget);
+		if (EquippedWeapon && Character)
+		{
+			HitTarget = EquippedWeapon->bUseScatter ? EquippedWeapon->TraceEndWithScatter(HitTarget) : HitTarget;
+			ServerFire(HitTarget);
+			if (!Character->HasAuthority()) LocalFire(HitTarget);
+		}
+	}
+	else
+	{
+		if (MountedWeapon && Character)
+		{
+			HitTarget = MountedWeapon->bUseScatter ? MountedWeapon->TraceEndWithScatter(HitTarget) : HitTarget;
+			ServerFire(HitTarget);
+			if (!Character->HasAuthority()) LocalFire(HitTarget);
+		}
 	}
 }
 
 void UCombatComponent::FireShotgun()
 {
-	
-	AShotgun* Shotgun = Cast<AShotgun>(EquippedWeapon);
-	if (Shotgun && Character)
+	if (!Character->GetIsFlying())
 	{
-		TArray<FVector_NetQuantize> HitTargets;
-		Shotgun->ShotgunTraceEndWithScatter(HitTarget, HitTargets);
-		if (!Character->HasAuthority()) ShotgunLocalFire(HitTargets);
-		ServerShotgunFire(HitTargets);
-	}	
+		AShotgun* Shotgun = Cast<AShotgun>(EquippedWeapon);
+		if (Shotgun && Character)
+		{
+			TArray<FVector_NetQuantize> HitTargets;
+			Shotgun->ShotgunTraceEndWithScatter(HitTarget, HitTargets);
+			if (!Character->HasAuthority()) ShotgunLocalFire(HitTargets);
+			ServerShotgunFire(HitTargets);
+		}
+	}
+	else
+	{
+		AShotgun* Shotgun = Cast<AShotgun>(MountedWeapon);
+		if (Shotgun && Character)
+		{
+			TArray<FVector_NetQuantize> HitTargets;
+			Shotgun->ShotgunTraceEndWithScatter(HitTarget, HitTargets);
+			if (!Character->HasAuthority()) ShotgunLocalFire(HitTargets);
+			ServerShotgunFire(HitTargets);
+		}
+	}
 }
 
 void UCombatComponent::StartFireTimer()
