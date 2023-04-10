@@ -101,6 +101,7 @@ void UCombatComponent::SetAiming(bool bIsAiming)
 			EquippedWeapon->GetWeaponMesh()->SetVisibility(true);
 		}		
 	}
+	if(Character->IsLocallyControlled()) bAimButtonPressed = bIsAiming;
 }
 
 void UCombatComponent::ServerSetAiming_Implementation(bool bIsAiming)
@@ -114,6 +115,14 @@ void UCombatComponent::ServerSetAiming_Implementation(bool bIsAiming)
 		{
 			EquippedWeapon->GetIsAiming(bAiming);
 		}
+	}
+}
+
+void UCombatComponent::OnRep_Aiming()
+{
+	if (Character && Character->IsLocallyControlled())
+	{
+		bAiming = bAimButtonPressed;
 	}
 }
 
@@ -349,10 +358,12 @@ void UCombatComponent::ReloadEmptyWeapon()
 
 void UCombatComponent::Reload()
 {
-	if (CarriedAmmo > 0 && CombatState == ECombatState::ECS_Unoccupied && EquippedWeapon && EquippedWeapon->GetAmmo() != EquippedWeapon->GetMagCapacity())
+	if (CarriedAmmo > 0 && CombatState == ECombatState::ECS_Unoccupied && EquippedWeapon && EquippedWeapon->GetAmmo() != EquippedWeapon->GetMagCapacity() && !bLocallyReloading)
 	{
 		SetAiming(false);
 		ServerReload();
+		HandleReload();
+		bLocallyReloading = true;
 	}
 }
 
@@ -360,7 +371,7 @@ void UCombatComponent::ServerReload_Implementation()
 {
 	if (Character == nullptr || EquippedWeapon == nullptr) return;
 	CombatState = ECombatState::ECS_Reloading;
-	HandleReload();
+	if(!Character->IsLocallyControlled()) HandleReload();
 }
 
 int32 UCombatComponent::AmountToReload()
@@ -382,6 +393,7 @@ int32 UCombatComponent::AmountToReload()
 void UCombatComponent::FinishReloading()
 {
 	if (Character == nullptr) return;
+	bLocallyReloading = false;
 	if (Character->HasAuthority())
 	{
 		CombatState = ECombatState::ECS_Unoccupied;
@@ -408,13 +420,15 @@ void UCombatComponent::UpdateAmmoValues()
 		Controller->SetHUDCarriedAmmo(CarriedAmmo);
 
 	}
-	EquippedWeapon->AddAmmo(-ReloadAmount);	
+	EquippedWeapon->AddAmmo(ReloadAmount);	
 }
 
 void UCombatComponent::HandleReload()
 {
-	
-	Character->PlayReloadMontage();
+	if (Character)
+	{
+		Character->PlayReloadMontage();
+	}	
 }
 
 void UCombatComponent::OnRep_CombatState()
@@ -422,7 +436,7 @@ void UCombatComponent::OnRep_CombatState()
 	switch (CombatState)
 	{
 	case ECombatState::ECS_Reloading:
-		HandleReload();
+		if (Character && !Character->IsLocallyControlled()) HandleReload();
 		break;
 	case ECombatState::ECS_Unoccupied:
 		if (bFireButtonPressed)
@@ -700,7 +714,7 @@ void UCombatComponent::TraceUnderCrosshairs(float DeltaTime)
 		CrosshairWorldDirection
 	);
 	FHitResult LineTraceHit;
-	FHitResult TraceHitResult;
+	
 	if (bScreenToWorld && EquippedWeapon != nullptr)
 	{
 		FVector Start = CrosshairWorldPosition;
@@ -708,104 +722,55 @@ void UCombatComponent::TraceUnderCrosshairs(float DeltaTime)
 		if (Character)
 		{
 			float DistanceToCharacter = (Character->GetActorLocation() - Start).Size();
-			Start += CrosshairWorldDirection * (DistanceToCharacter + 100.f);
+			Start += CrosshairWorldDirection * (DistanceToCharacter + 50.f);
 		}
 
-		bool SphereTrace = false;
+		
 		FVector End = Start + CrosshairWorldDirection * WeaponRange;
-		GetWorld()->LineTraceSingleByChannel(
+			GetWorld()->LineTraceSingleByChannel(
 			LineTraceHit,
 			Start,
 			End,
 			ECollisionChannel::ECC_Visibility);
-		if (LineTraceHit.GetActor() && LineTraceHit.GetActor() && LineTraceHit.GetActor() != GetOwner() && LineTraceHit.GetActor()->Implements<UInteractWithCrosshairsInterface>())
-		{
-			SphereTrace = false;
-		}
-		else
-		{
-			SphereTrace = true;
-		}
-
-			
-		float TargetSpeed;
-		float PitchInput = 0;		
-		float Radious = 10;
-		TArray<AActor*> ActorsToIgnore;		
-		ActorsToIgnore.Emplace(Character);		
-		if (SphereTrace)
-		{
-			UKismetSystemLibrary::SphereTraceSingle(this, Start, End, EquippedWeapon->GetTraceRadious(), UEngineTypes::ConvertToTraceType(ECollisionChannel::ECC_Visibility),
-			true, ActorsToIgnore, EDrawDebugTrace::None, TraceHitResult, true);
-		}
 		
-		if (TraceHitResult.GetActor() && TraceHitResult.GetActor() != GetOwner() && TraceHitResult.GetActor()->Implements<UInteractWithCrosshairsInterface>()
-			|| LineTraceHit.GetActor() && LineTraceHit.GetActor() && LineTraceHit.GetActor() != GetOwner() && LineTraceHit.GetActor()->Implements<UInteractWithCrosshairsInterface>())
+
+		
+		float PitchInput = 0;		
+		TArray<AActor*> ActorsToIgnore;		
+		ActorsToIgnore.Emplace(Character);			
+		if (LineTraceHit.bBlockingHit)
 		{
-			HUDPackage.CrosshairsColor = FLinearColor::Red;
-			if (Character)
-			{				 
+			HitTarget = LineTraceHit.ImpactPoint;
+			if (LineTraceHit.GetActor() && LineTraceHit.GetActor() && LineTraceHit.GetActor() != GetOwner() && LineTraceHit.GetActor()->Implements<UInteractWithCrosshairsInterface>())
+			{
+
+				TargetCharacter = Cast<APSCharacter>(LineTraceHit.GetActor());
 				float Amount = bAiming ? StickyAssistAmountAiming : StickyAssistAmount;
-				Character->SetOverlappingCharacterMultiplier(Amount);
+
 				Character->GetWorldTimerManager().SetTimer(
 					LostTargetTimer,
 					this,
 					&UCombatComponent::LostTargetTimerFinished,
 					TimeBeforeLosingTarget
 				);
-				TargetCharacter = Cast<APSCharacter>(TraceHitResult.GetActor());
-				TargetSpeed = TurnToEnemyInterpSpeed;
-				if (TraceHitResult.bBlockingHit && TraceHitResult.GetActor() == TargetCharacter)
-				{					
-					
-					AimAssistSpeedYaw = FMath::FInterpTo(AimAssistSpeedYaw, TurnToEnemyInterpSpeed, GetWorld()->GetDeltaSeconds(), 5);
-				}				
-			}			
-		}
-		else
-		{				
-			AimAssistSpeedYaw = FMath::FInterpTo(AimAssistSpeedYaw, 0, GetWorld()->GetDeltaSeconds(), 1);
-			TargetSpeed = 0.f;
-			HUDPackage.CrosshairsColor = FLinearColor::White;
-			if (Character)
-			{
-				Character->SetOverlappingCharacterMultiplier(1.f);				
-			}			
-		}
-
-		if (!TraceHitResult.bBlockingHit && !LineTraceHit.bBlockingHit)
-		{
-			LineTraceHit.ImpactPoint = End;
-
-		}
-		
-		TraceTargetForWeaponRotation = LineTraceHit.ImpactPoint;
-		if (TraceHitResult.GetActor() && TraceHitResult.GetActor() != GetOwner() && TraceHitResult.GetActor()->Implements<UInteractWithCrosshairsInterface>() && SphereTrace)
-		{
-			AimAssist(DeltaTime, TraceHitResult);
-			HitTarget = TraceHitResult.ImpactPoint;
-			
+			}
 		}
 		else
 		{
-			AimAssist(DeltaTime, LineTraceHit);
-			HitTarget = LineTraceHit.ImpactPoint;
-			
-		}
-		if (LineTraceHit.ImpactPoint.Size() == 0)
-		{
-			TraceTargetForWeaponRotation = End;
 			HitTarget = End;
-		}
-
-		if (GEngine)
+		}		
+		
+		if (TargetCharacter != nullptr && !TargetCharacter->IsElimmed())
 		{
-			//GEngine->AddOnScreenDebugMessage(-1, .1, FColor::Red, FString::Printf(TEXT("Distance: %f"), TraceTargetForWeaponRotation.Size()));
+			HUDPackage.CrosshairsColor = FLinearColor::Red;
+			AimAssist(DeltaTime, LineTraceHit);
 		}
-		if (EquippedWeapon && TargetCharacter != nullptr)
+		else
 		{
-			EquippedWeapon->SetTarget(TargetCharacter);
-		}
+			HUDPackage.CrosshairsColor = FLinearColor::White;
+		}	
+		
+		TraceTargetForWeaponRotation = HitTarget;	
 	}	
 }
 
@@ -827,12 +792,13 @@ void UCombatComponent::AimAssist(float DeltaTime, FHitResult& HitResult)
 		FRotator RotationForPitch = FRotator(AimTargetRotation.Pitch, Character->GetCameraBoom()->GetComponentRotation().Yaw, Character->GetCameraBoom()->GetComponentRotation().Roll);
 		AimAssistSpeedPitch = AimAssistSpeedPitch * AimRange;
 		AimAssistSpeedYaw = AimAssistSpeedYaw * AimRange;
-		FRotator PawnRotation = FMath::RInterpTo(Character->GetActorRotation(), RotationForPawn, DeltaTime, AimAssistSpeedYaw);
+		//FRotator PawnRotation = FMath::RInterpTo(Character->GetActorRotation(), RotationForPawn, DeltaTime, AimAssistSpeedYaw);
 		FRotator PawnPitch;
 		if (AimRange == 0) return;
 		float DisticeForYaw = FVector(HitResult.ImpactPoint - TargetCharacter->GetMesh()->GetSocketLocation(FName("spine_05"))).Size();
 		if (DisticeForYaw > 3)
 		{
+			FRotator PawnRotation = FMath::Lerp(Character->GetActorRotation(), RotationForPawn, .3);
 			Character->SetActorRotation(PawnRotation);
 		}		
 		
@@ -842,15 +808,13 @@ void UCombatComponent::AimAssist(float DeltaTime, FHitResult& HitResult)
 		{
 			AimAssistSpeedPitch = FMath::FInterpTo(AimAssistSpeedPitch, PitchToEnemyInterpSpeed, GetWorld()->GetDeltaSeconds(), 5);
 			PawnPitch = FMath::RInterpTo(Character->GetCameraBoom()->GetComponentRotation(), RotationForPitch, DeltaTime, AimAssistSpeedPitch);
-			Character->GetCameraBoom()->SetWorldRotation(PawnPitch);
-			Character->PitchFloat = PawnPitch.Pitch;
+			//Character->GetCameraBoom()->SetWorldRotation(PawnPitch);
+			//Character->PitchFloat = PawnPitch.Pitch;
 		}
 		else
 		{
 			AimAssistSpeedPitch = FMath::FInterpTo(AimAssistSpeedPitch, 0, GetWorld()->GetDeltaSeconds(), 5);
-		}		
-		
-	
+		}	
 	}	
 }
 
@@ -981,15 +945,15 @@ void UCombatComponent::InterpFOV(float DeltaTime)
 
 bool UCombatComponent::CanFire()
 {	
-	
+	if (bLocallyReloading) return false;
 	if (!Character->GetIsFlying())
 	{
-		if (EquippedWeapon == nullptr) return false;
+		if (EquippedWeapon == nullptr) return false;		
 		if(!EquippedWeapon->IsEmpty() && bCanFire && CombatState == ECombatState::ECS_Unoccupied) return true;
 	}
 	else if(Character->GetIsFlying())
 	{
-		if (MountedWeapon == nullptr) return false;
+		if (MountedWeapon == nullptr) return false;		
 		if(!MountedWeapon->IsEmpty() && bCanFire && CombatState == ECombatState::ECS_Unoccupied) return true;
 	}
 	return false;

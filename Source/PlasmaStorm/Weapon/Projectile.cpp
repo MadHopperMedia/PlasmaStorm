@@ -60,20 +60,20 @@ void AProjectile::BeginPlay()
 	APSCharacter* OwningCharacter = Cast<APSCharacter>(GetOwner());
 	if (OwningCharacter)
 	{
-		CurrentTarget = OwningCharacter->GetTargetCharacter();
+		//CurrentTarget = OwningCharacter->GetTargetCharacter();
 	}
 		
 
 	if (ProjectileMovementComponent && ProjectileMovementComponent->bIsHomingProjectile && CurrentTarget != nullptr)
 	{
-		ProjectileMovementComponent->HomingTargetComponent = CurrentTarget->GetTarget();
+		//ProjectileMovementComponent->HomingTargetComponent = CurrentTarget->GetTarget();
 	}
 	
 }
 
 void AProjectile::SetTarget(APSCharacter* Target)
 {
-	CurrentTarget = Target;
+	//CurrentTarget = Target;
 	
 
 }

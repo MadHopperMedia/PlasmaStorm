@@ -148,16 +148,23 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Weapon Properties")
 	float Recoil = 0.5f;
 	
-	UPROPERTY(ReplicatedUsing = OnRep_Ammo, EditAnywhere, Category = "Weapon Properties")
-	int32 Ammo;
+	UPROPERTY(EditAnywhere, Category = "Weapon Properties")
+	int32 Ammo;	
 
-	UFUNCTION()
-	void OnRep_Ammo();
+	UFUNCTION(Client, Reliable)
+	void ClientUpdateAmmo(int32 ServerAmmo);
+
+	UFUNCTION(Client, Reliable)
+	void ClientAddAmmo(int32 AmmoToAdd);
 
 	void SpendRound();
 
 	UPROPERTY(EditAnywhere, Category = "Weapon Properties")
 	int32 MagCapacity;
+
+	// Number of unprocessed server requests for ammo.
+	// incremented in spend round, decremented in client update ammo.
+	int32 Sequence = 0;
 
 	FTimerHandle DroppedTimer;
 	UPROPERTY(EditDefaultsOnly)

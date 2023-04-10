@@ -21,7 +21,21 @@ public:
 private:
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<class AProjectile> ProjectileClass;
-
+	void WeaponTraceHit(const FVector& TraceStart, const FVector& HitTarget, FHitResult& OutHit);
+	UPROPERTY(EditAnywhere)
+	float Damage = 20.f;
+	UPROPERTY(EditAnywhere)
+	class UParticleSystem* ImpactParticles;
+	UPROPERTY(EditAnywhere)
+	UParticleSystem* BeamParticles;
+	UPROPERTY(EditAnywhere)
+	UParticleSystem* MuzzleFlash;
+	UPROPERTY(EditAnywhere)
+	class USoundCue* FireSound;
+	UPROPERTY(EditAnywhere)
+	USoundCue* HitSound;
+	UPROPERTY(EditAnywhere)
+	float ImpulsePower = 2000;
 	
 
 public:

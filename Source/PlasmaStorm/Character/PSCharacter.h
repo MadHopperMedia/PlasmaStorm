@@ -44,16 +44,66 @@ public:
 	
 	UFUNCTION(NetMulticast, Reliable)
 	void MulticastShieldRecharge();
-
 	UPROPERTY(Replicated)
 	FVector Impulse;
-
 	UPROPERTY(Replicated)
 	bool bDisableGameplay = false;
-
 	UFUNCTION(BlueprintImplementableEvent)
 	void ShowSniperScopeWidget(bool bShowScope);
 	virtual void EnterFlight() override;
+
+	/**
+	* Hit Boxes used for server side rewind
+	*/
+	UPROPERTY(EditAnywhere)
+	class UBoxComponent* head;
+
+	UPROPERTY(EditAnywhere)
+	UBoxComponent* spine_05;
+
+	UPROPERTY(EditAnywhere)
+	class UBoxComponent* spine_02;
+
+	UPROPERTY(EditAnywhere)
+	class UBoxComponent* pelvis;
+
+	UPROPERTY(EditAnywhere)
+	class UBoxComponent* upperarm_l;
+
+	UPROPERTY(EditAnywhere)
+	class UBoxComponent* lowerarm_l;
+
+	UPROPERTY(EditAnywhere)
+	class UBoxComponent* hand_l;
+
+	UPROPERTY(EditAnywhere)
+	class UBoxComponent* upperarm_r;
+
+	UPROPERTY(EditAnywhere)
+	class UBoxComponent* lowerarm_r;
+
+	UPROPERTY(EditAnywhere)
+	class UBoxComponent* hand_r;
+
+	UPROPERTY(EditAnywhere)
+	class UBoxComponent* thigh_l;
+
+	UPROPERTY(EditAnywhere)
+	class UBoxComponent* thigh_r;
+
+	UPROPERTY(EditAnywhere)
+	class UBoxComponent* calf_l;
+
+	UPROPERTY(EditAnywhere)
+	class UBoxComponent* calf_r;
+
+	UPROPERTY(EditAnywhere)
+	class UBoxComponent* foot_l;
+
+	UPROPERTY(EditAnywhere)
+	class UBoxComponent* foot_r;
+
+	
 
 protected:
 
@@ -86,25 +136,22 @@ protected:
 private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	class UWidgetComponent* OverheadWidget;
-
 	UPROPERTY(ReplicatedUsing = OnRep_OverlappingWeapon, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	class AWeapon* OverlappingWeapon;
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	class UCombatComponent* Combat;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	class ULagCompensationComponent* LagCompensation;
+
 	UPROPERTY(VisibleAnywhere)
 	class UBuffComponent* Buff;
 	UPROPERTY(EditAnywhere)
 	class USoundCue* RechargeShieldSound;
-
 	UPROPERTY(EditAnywhere)
 	class USoundCue* KillSound;
-
 	UPROPERTY(EditAnywhere)
 	class USceneComponent* Target;
-
-	
-
 	UFUNCTION()
 	void OnRep_OverlappingWeapon(AWeapon* LastWeapon);
 
@@ -323,9 +370,11 @@ public:
 	FORCEINLINE USceneComponent* GetTarget() const { return Target; }
 	FORCEINLINE void SetTargetCharacter(APSCharacter* CurrentTarget) { TargetCharacter = CurrentTarget; }
 	FORCEINLINE APSCharacter* GetTargetCharacter() { return TargetCharacter; }
+	UFUNCTION(BlueprintCallable)
+	FORCEINLINE FVector PlayerVelocity() const { return Speed; }
 	AWeapon* GetEquippedWeapons();
 	AWeapon* GetSecondaryWeapons();
-	
+	bool IsLocallyReloading();
 	
 	
 };

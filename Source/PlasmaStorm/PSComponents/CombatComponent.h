@@ -39,6 +39,7 @@ public:
 
 	void PickupAmmo(EWeaponType WeaponType, int32 AmmoAmount);
 	void PickupGrenade(int32 GrenadeAmount);
+	bool bLocallyReloading = false;
 	
 
 protected:
@@ -122,8 +123,14 @@ private:
 	AWeapon* SecondaryWeapon;
 	UPROPERTY(ReplicatedUsing = OnRep_SecondaryWeapon)
 	AWeapon* MountedWeapon;
-	UPROPERTY(Replicated)
-	bool bAiming;
+	UPROPERTY(ReplicatedUsing = OnRep_Aiming)
+	bool bAiming = false;
+
+	bool bAimButtonPressed = false;
+
+	UFUNCTION()
+	void OnRep_Aiming();
+
 	UPROPERTY(EditAnywhere)
 	float BaseWalkSpeed = 8.0f;
 	
@@ -235,8 +242,7 @@ private:
 	UPROPERTY(EditAnywhere)
 	int32 MaxGrenades = 4;
 
-	void UpdateHUDGrenades();
-
+	void UpdateHUDGrenades();	
 
 	void InitializeCarriedAmmo();
 
