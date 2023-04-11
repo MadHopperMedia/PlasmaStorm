@@ -8,6 +8,8 @@
 #include "Particles/ParticleSystemComponent.h"
 #include "Sound/SoundCue.h"
 #include "PlasmaStorm/Character/PSCharacter.h"
+#include "PlasmaStorm/PlayerController/PSPlayerController.h"
+#include "PlasmaStorm/PSComponents/LagCompensationComponent.h"
 
 void AProjectileWeapon::Fire(const FVector& HitTarget)
 {
@@ -28,15 +30,33 @@ void AProjectileWeapon::Fire(const FVector& HitTarget)
 			FHitResult FireHit;
 			WeaponTraceHit(Start, HitTarget, FireHit);
 			APSCharacter* PSCharacter = Cast<APSCharacter>(FireHit.GetActor());
-			if (PSCharacter && HasAuthority() && InstigatorController)
+			if (PSCharacter && InstigatorController)
 			{
-				UGameplayStatics::ApplyDamage(
-					PSCharacter,
-					Damage,
-					InstigatorController,
-					this,
-					UDamageType::StaticClass()
-				);
+				if (OwnerPawn->IsLocallyControlled() && HasAuthority())
+				{
+					UGameplayStatics::ApplyDamage(
+						PSCharacter,
+						Damage,
+						InstigatorController,
+						this,
+						UDamageType::StaticClass()
+					);
+				}
+				if (!HasAuthority() && bUseServerSideRewind)
+				{
+					PSOwnerCharacter = PSOwnerCharacter == nullptr ? Cast<APSCharacter>(OwnerPawn) : PSOwnerCharacter;
+					PSOwnerController = PSOwnerController == nullptr ? Cast<APSPlayerController>(InstigatorController) : PSOwnerController;
+					if (PSOwnerController && PSOwnerCharacter && PSOwnerCharacter->GetLagCompensation())
+					{
+						PSOwnerCharacter->GetLagCompensation()->ServerScoreRequest(PSCharacter,
+							Start,
+							HitTarget,
+							PSOwnerController->GetServerTime() - PSOwnerController->SingleTripTime,
+							this
+						);
+					}
+				}
+
 			}
 			if (PSCharacter)
 			{

@@ -35,6 +35,7 @@ public:
 	void HandleCooldown();
 	UPROPERTY()
 	class APSCharacter* PSCharacter;
+	float SingleTripTime = 0.f;
 	
 protected:
 

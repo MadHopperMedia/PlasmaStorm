@@ -125,6 +125,17 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "WeaponScatter")
 	float SphereRadious = 80.f;
 
+	UPROPERTY(EditAnywhere)
+	float Damage = 20.f;
+
+	UPROPERTY(EditAnywhere)
+	bool bUseServerSideRewind = false;
+
+	UPROPERTY()
+	class APSCharacter* PSOwnerCharacter;
+	UPROPERTY()
+	class APSPlayerController* PSOwnerController;
+
 private:
 
 	UPROPERTY(VisibleAnywhere, Category = "Weapon Properties")
@@ -170,10 +181,7 @@ private:
 	UPROPERTY(EditDefaultsOnly)
 	float DroppedDelay = 20.f;
 	void DroppedTimerFinished();
-	UPROPERTY()
-	class APSCharacter* PSOwnerCharacter;
-	UPROPERTY()
-	class APSPlayerController* PSOwnerController;
+
 
 	UPROPERTY(EditAnywhere)
 	EWeaponType WeaponType;
@@ -198,4 +206,5 @@ public:
 	FORCEINLINE void GetIsAiming(bool Aiming) { bIsAiming = Aiming; }
 	UFUNCTION(BlueprintCallable)
 	FORCEINLINE FName GetWeaponName() const { return WeaponName; }
+	FORCEINLINE float GetDamage() const { return Damage; }
 };

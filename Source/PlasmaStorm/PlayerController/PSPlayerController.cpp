@@ -362,7 +362,8 @@ void APSPlayerController::ServerRequestServerTime_Implementation(float TimeOfCli
 void APSPlayerController::ClientReportServerTime_Implementation(float TimeOfClientRequest, float TimerServerRecievedClientRequest)
 {
 	float RoundTripTime = GetWorld()->GetTimeSeconds() - TimeOfClientRequest;
-	float CurrentServerTime = TimerServerRecievedClientRequest + (0.5f * RoundTripTime);
+	SingleTripTime = 0.5f * RoundTripTime;
+	float CurrentServerTime = TimerServerRecievedClientRequest + SingleTripTime;
 	ClientServerDelta = CurrentServerTime - GetWorld()->GetTimeSeconds();
 }
 

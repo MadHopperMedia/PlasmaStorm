@@ -42,7 +42,7 @@ void APSHud::DrawHUD()
 	if (GEngine)
 	{
 		GEngine->GameViewport->GetViewportSize(ViewportSize);
-		const FVector2D ViewportCenter(ViewportSize.X / 2.f, ViewportSize.Y / 2.f + CrosshairsOffset);
+		const FVector2D ViewportCenter(ViewportSize.X / 2.f, ViewportSize.Y / 2.f);
 
 		float SpreadScaled = CrosshairSpreadMax * HUDPackage.CrosshairSpread;
 

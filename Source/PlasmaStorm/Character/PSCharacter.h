@@ -52,6 +52,9 @@ public:
 	void ShowSniperScopeWidget(bool bShowScope);
 	virtual void EnterFlight() override;
 
+	UPROPERTY()
+		TMap<FName, class UBoxComponent*> HitCollisionBoxes;
+
 	/**
 	* Hit Boxes used for server side rewind
 	*/
@@ -102,6 +105,8 @@ public:
 
 	UPROPERTY(EditAnywhere)
 	class UBoxComponent* foot_r;
+
+
 
 	
 
@@ -375,6 +380,7 @@ public:
 	AWeapon* GetEquippedWeapons();
 	AWeapon* GetSecondaryWeapons();
 	bool IsLocallyReloading();
+	FORCEINLINE ULagCompensationComponent* GetLagCompensation() const { return LagCompensation; }
 	
 	
 };

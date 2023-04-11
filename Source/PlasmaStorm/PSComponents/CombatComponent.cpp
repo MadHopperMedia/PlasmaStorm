@@ -71,7 +71,8 @@ void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 		SetHUDCrosshairs(DeltaTime);
 		InterpFOV(DeltaTime);
 		
-	}	
+	}
+	
 }
 
 void UCombatComponent::SetAiming(bool bIsAiming)
@@ -469,11 +470,7 @@ void UCombatComponent::Fire()
 {
 	if (CanFire() && CombatState != ECombatState::ECS_ThrowingGrenade)
 	{	
-		if (HitTarget.Size() == 0)
-		{
-			StartFireTimer();
-			return;
-		}
+		
 		bCanFire = false;		
 		if (EquippedWeapon)
 		{
@@ -521,9 +518,67 @@ void UCombatComponent::FireProjectileWeapon()
 	{
 		if (EquippedWeapon && Character)
 		{
-			HitTarget = EquippedWeapon->bUseScatter ? MountedWeapon->TraceEndWithScatter(HitTarget) : HitTarget;
-			ServerFire(HitTarget);
-			if (!Character->HasAuthority()) LocalFire(HitTarget);
+			FVector2D ViewportSize;
+			if (GEngine && GEngine->GameViewport)
+			{
+				GEngine->GameViewport->GetViewportSize(ViewportSize);
+			}
+			float YLocation;
+			if (Character)
+			{
+				//YLocation = Character->GetIsFlying() ? ViewportSize.Y / 2.f : (ViewportSize.Y / 2.f) + CrosshairOffset;
+				YLocation = Character->GetIsFlying() ? ViewportSize.Y / 2.f : (ViewportSize.Y / 2.f);
+			}
+			FVector2D CrosshairLocation(ViewportSize.X / 2, YLocation);
+			FVector CrosshairWorldPosition;
+			FVector CrosshairWorldDirection;
+			bool bScreenToWorld = UGameplayStatics::DeprojectScreenToWorld(
+				UGameplayStatics::GetPlayerController(this, 0),
+				CrosshairLocation,
+				CrosshairWorldPosition,
+				CrosshairWorldDirection
+			);
+			FHitResult LineTraceHit;
+
+			if (bScreenToWorld && EquippedWeapon != nullptr)
+			{
+				FVector Start = CrosshairWorldPosition;
+
+				if (Character)
+				{
+					float DistanceToCharacter = (Character->GetActorLocation() - Start).Size();
+					Start += CrosshairWorldDirection * (DistanceToCharacter + 100.f);
+				}
+
+				FVector ImpactLocation;
+				FVector End = Start + CrosshairWorldDirection * WeaponRange;
+				GetWorld()->LineTraceSingleByChannel(
+					LineTraceHit,
+					Start,
+					End,
+					ECollisionChannel::ECC_Visibility);
+				if (LineTraceHit.bBlockingHit)
+				{
+					ImpactLocation = LineTraceHit.ImpactPoint;
+					if (LineTraceHit.GetActor())
+					{
+						APSCharacter* HitPlayer = Cast<APSCharacter>(LineTraceHit.GetActor());
+						if (HitPlayer)
+						{
+							ImpactLocation = ImpactLocation + ((HitPlayer->GetActorForwardVector() * FMath::Clamp(HitPlayer->Speed.Size(), 0, 30)));
+						}
+					}
+				}
+				else
+				{
+					ImpactLocation = End;
+				}
+				
+				ImpactLocation = EquippedWeapon->bUseScatter ? EquippedWeapon->TraceEndWithScatter(ImpactLocation) : ImpactLocation;
+				ServerFire(ImpactLocation);
+				
+				if (!Character->HasAuthority()) LocalFire(ImpactLocation);
+			}
 		}
 	}
 	else
@@ -543,9 +598,67 @@ void UCombatComponent::FireHitScanWeapon()
 	{
 		if (EquippedWeapon && Character)
 		{
-			HitTarget = EquippedWeapon->bUseScatter ? EquippedWeapon->TraceEndWithScatter(HitTarget) : HitTarget;
-			ServerFire(HitTarget);
-			if (!Character->HasAuthority()) LocalFire(HitTarget);
+			FVector2D ViewportSize;
+			if (GEngine && GEngine->GameViewport)
+			{
+				GEngine->GameViewport->GetViewportSize(ViewportSize);
+			}
+			float YLocation;
+			if (Character)
+			{
+				//YLocation = Character->GetIsFlying() ? ViewportSize.Y / 2.f : (ViewportSize.Y / 2.f) + CrosshairOffset;
+				YLocation = Character->GetIsFlying() ? ViewportSize.Y / 2.f : (ViewportSize.Y / 2.f);
+			}
+			FVector2D CrosshairLocation(ViewportSize.X / 2, YLocation);
+			FVector CrosshairWorldPosition;
+			FVector CrosshairWorldDirection;
+			bool bScreenToWorld = UGameplayStatics::DeprojectScreenToWorld(
+				UGameplayStatics::GetPlayerController(this, 0),
+				CrosshairLocation,
+				CrosshairWorldPosition,
+				CrosshairWorldDirection
+			);
+			FHitResult LineTraceHit;
+
+			if (bScreenToWorld && EquippedWeapon != nullptr)
+			{
+				FVector Start = CrosshairWorldPosition;
+
+				if (Character)
+				{
+					float DistanceToCharacter = (Character->GetActorLocation() - Start).Size();
+					Start += CrosshairWorldDirection * (DistanceToCharacter + 100.f);
+				}
+
+				FVector ImpactLocation;
+				FVector End = Start + CrosshairWorldDirection * WeaponRange;
+				GetWorld()->LineTraceSingleByChannel(
+					LineTraceHit,
+					Start,
+					End,
+					ECollisionChannel::ECC_Visibility);
+				if (LineTraceHit.bBlockingHit)
+				{
+					ImpactLocation = LineTraceHit.ImpactPoint;
+					if (LineTraceHit.GetActor())
+					{
+						APSCharacter* HitPlayer = Cast<APSCharacter>(LineTraceHit.GetActor());
+						if (HitPlayer)
+						{
+							ImpactLocation = ImpactLocation + ((HitPlayer->GetActorForwardVector() * FMath::Clamp(HitPlayer->Speed.Size(), 0, 20)));
+						}
+					}
+				}
+				else
+				{
+					ImpactLocation = End;
+				}
+
+				ImpactLocation = EquippedWeapon->bUseScatter ? EquippedWeapon->TraceEndWithScatter(ImpactLocation) : ImpactLocation;
+				ServerFire(ImpactLocation);
+
+				if (!Character->HasAuthority()) LocalFire(ImpactLocation);
+			}
 		}
 	}
 	else
@@ -678,6 +791,8 @@ void UCombatComponent::LocalFire(const FVector_NetQuantize& TraceHitTarget)
 	{
 		Character->SetTargetCharacter(nullptr);
 	}
+
+	
 }
 
 void UCombatComponent::ShotgunLocalFire(const TArray<FVector_NetQuantize>& TraceHitTargets)
@@ -702,7 +817,8 @@ void UCombatComponent::TraceUnderCrosshairs(float DeltaTime)
 	float YLocation;
 	if (Character)
 	{
-		YLocation = Character->GetIsFlying() ? ViewportSize.Y / 2.f : (ViewportSize.Y / 2.f) + CrosshairOffset;
+		//YLocation = Character->GetIsFlying() ? ViewportSize.Y / 2.f : (ViewportSize.Y / 2.f) + CrosshairOffset;
+		YLocation = Character->GetIsFlying() ? ViewportSize.Y / 2.f : (ViewportSize.Y / 2.f);
 	}
 	FVector2D CrosshairLocation(ViewportSize.X / 2, YLocation);
 	FVector CrosshairWorldPosition;
@@ -714,6 +830,7 @@ void UCombatComponent::TraceUnderCrosshairs(float DeltaTime)
 		CrosshairWorldDirection
 	);
 	FHitResult LineTraceHit;
+	FHitResult ShapeTraceHit;
 	
 	if (bScreenToWorld && EquippedWeapon != nullptr)
 	{
@@ -727,24 +844,47 @@ void UCombatComponent::TraceUnderCrosshairs(float DeltaTime)
 
 		
 		FVector End = Start + CrosshairWorldDirection * WeaponRange;
-			GetWorld()->LineTraceSingleByChannel(
+			/*GetWorld()->LineTraceSingleByChannel(
 			LineTraceHit,
 			Start,
 			End,
-			ECollisionChannel::ECC_Visibility);
-		
-
-		
-		float PitchInput = 0;		
-		TArray<AActor*> ActorsToIgnore;		
-		ActorsToIgnore.Emplace(Character);			
+			ECollisionChannel::ECC_Visibility);			
 		if (LineTraceHit.bBlockingHit)
 		{
 			HitTarget = LineTraceHit.ImpactPoint;
 			if (LineTraceHit.GetActor() && LineTraceHit.GetActor() && LineTraceHit.GetActor() != GetOwner() && LineTraceHit.GetActor()->Implements<UInteractWithCrosshairsInterface>())
 			{
-
+				HUDPackage.CrosshairsColor = FLinearColor::Red;
 				TargetCharacter = Cast<APSCharacter>(LineTraceHit.GetActor());
+				/*float Amount = bAiming ? StickyAssistAmountAiming : StickyAssistAmount;
+
+				Character->GetWorldTimerManager().SetTimer(
+					LostTargetTimer,
+					this,
+					&UCombatComponent::LostTargetTimerFinished,
+					TimeBeforeLosingTarget
+				);
+			}
+			else
+			{
+				HUDPackage.CrosshairsColor = FLinearColor::White;
+			}
+		}
+		else
+		{
+		HitTarget = End;
+		}*/
+
+		TArray<AActor*> ActorsToIgnore;
+		UKismetSystemLibrary::SphereTraceSingle(this, Start, End, 10, UEngineTypes::ConvertToTraceType(ECollisionChannel::ECC_Visibility),
+			true, ActorsToIgnore, EDrawDebugTrace::None, ShapeTraceHit, true);
+		if (ShapeTraceHit.bBlockingHit)
+		{
+			HitTarget = ShapeTraceHit.ImpactPoint;
+			if (ShapeTraceHit.GetActor() && ShapeTraceHit.GetActor() && ShapeTraceHit.GetActor() != GetOwner() && ShapeTraceHit.GetActor()->Implements<UInteractWithCrosshairsInterface>())
+			{
+				//HUDPackage.CrosshairsColor = FLinearColor::Red;
+				TargetCharacter = Cast<APSCharacter>(ShapeTraceHit.GetActor());
 				float Amount = bAiming ? StickyAssistAmountAiming : StickyAssistAmount;
 
 				Character->GetWorldTimerManager().SetTimer(
@@ -754,23 +894,27 @@ void UCombatComponent::TraceUnderCrosshairs(float DeltaTime)
 					TimeBeforeLosingTarget
 				);
 			}
+			else
+			{
+				//HUDPackage.CrosshairsColor = FLinearColor::White;
+			}
+			TraceTargetForWeaponRotation = ShapeTraceHit.ImpactPoint;
 		}
 		else
 		{
-			HitTarget = End;
-		}		
-		
+			TraceTargetForWeaponRotation = End;
+		}
+
 		if (TargetCharacter != nullptr && !TargetCharacter->IsElimmed())
 		{
 			HUDPackage.CrosshairsColor = FLinearColor::Red;
-			AimAssist(DeltaTime, LineTraceHit);
-		}
+			AimAssist(DeltaTime, ShapeTraceHit);
+		}		
 		else
 		{
+			HitTarget = End;
 			HUDPackage.CrosshairsColor = FLinearColor::White;
-		}	
-		
-		TraceTargetForWeaponRotation = HitTarget;	
+		}			
 	}	
 }
 
@@ -787,7 +931,7 @@ void UCombatComponent::AimAssist(float DeltaTime, FHitResult& HitResult)
 		float AimRange = UKismetMathLibrary::NormalizeToRange(AdjustedValue, RangeMax, 0);
 		AimRange = FMath::Clamp(AimRange, 0.2f, 1.f);
 		
-		FRotator AimTargetRotation = UKismetMathLibrary::FindLookAtRotation(Character->GetFollowCamera()->GetComponentLocation(), TargetCharacter->GetMesh()->GetSocketLocation(FName("spine_05")));
+		FRotator AimTargetRotation = UKismetMathLibrary::FindLookAtRotation(Character->GetFollowCamera()->GetComponentLocation(), TargetCharacter->GetMesh()->GetSocketLocation(FName("spine_05")) + TargetCharacter->GetActorForwardVector() * (TargetCharacter->Speed.Size() * 0.08f));
 		FRotator RotationForPawn = FRotator(Character->GetActorRotation().Pitch, AimTargetRotation.Yaw, Character->GetActorRotation().Roll);
 		FRotator RotationForPitch = FRotator(AimTargetRotation.Pitch, Character->GetCameraBoom()->GetComponentRotation().Yaw, Character->GetCameraBoom()->GetComponentRotation().Roll);
 		AimAssistSpeedPitch = AimAssistSpeedPitch * AimRange;
@@ -798,7 +942,27 @@ void UCombatComponent::AimAssist(float DeltaTime, FHitResult& HitResult)
 		float DisticeForYaw = FVector(HitResult.ImpactPoint - TargetCharacter->GetMesh()->GetSocketLocation(FName("spine_05"))).Size();
 		if (DisticeForYaw > 3)
 		{
-			FRotator PawnRotation = FMath::Lerp(Character->GetActorRotation(), RotationForPawn, .3);
+			float InterpSpeed = 0.f;
+			if (HitResult.GetActor() == TargetCharacter)
+			{
+				if (GetOwner()->HasAuthority())
+				{
+					InterpSpeed = FMath::FInterpTo(InterpSpeed, .25, DeltaTime, 20);
+					FRotator PawnRotation = FMath::Lerp(Character->GetActorRotation(), RotationForPawn, InterpSpeed);
+					Character->SetActorRotation(PawnRotation);
+				}
+				else
+				{
+					InterpSpeed = FMath::FInterpTo(InterpSpeed, .4, DeltaTime, 20);
+				}
+			}
+			else
+			{
+				InterpSpeed = FMath::FInterpTo(InterpSpeed, 0, DeltaTime, .1);
+			}
+			
+			
+			FRotator PawnRotation = FMath::Lerp(Character->GetActorRotation(), RotationForPawn, InterpSpeed);
 			Character->SetActorRotation(PawnRotation);
 		}		
 		
@@ -807,13 +971,13 @@ void UCombatComponent::AimAssist(float DeltaTime, FHitResult& HitResult)
 		if (PitchDirection <= 0 && DisticeForPitch > 35 || PitchDirection > 0 && DisticeForPitch > 200)
 		{
 			AimAssistSpeedPitch = FMath::FInterpTo(AimAssistSpeedPitch, PitchToEnemyInterpSpeed, GetWorld()->GetDeltaSeconds(), 5);
-			PawnPitch = FMath::RInterpTo(Character->GetCameraBoom()->GetComponentRotation(), RotationForPitch, DeltaTime, AimAssistSpeedPitch);
+			PawnPitch = FMath::Lerp(Character->GetActorRotation(), RotationForPitch, 0);
 			//Character->GetCameraBoom()->SetWorldRotation(PawnPitch);
 			//Character->PitchFloat = PawnPitch.Pitch;
 		}
 		else
 		{
-			AimAssistSpeedPitch = FMath::FInterpTo(AimAssistSpeedPitch, 0, GetWorld()->GetDeltaSeconds(), 5);
+			//AimAssistSpeedPitch = FMath::FInterpTo(AimAssistSpeedPitch, 0, GetWorld()->GetDeltaSeconds(), 5);
 		}	
 	}	
 }
