@@ -201,6 +201,7 @@ void APSCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 	DOREPLIFETIME(APSCharacter, Impulse); 
 	DOREPLIFETIME(APSCharacter, bDisableGameplay);
 	DOREPLIFETIME(APSCharacter, bIsBoosting);
+	DOREPLIFETIME(APSCharacter, Stamina);
 }
 
 void APSCharacter::BeginPlay()

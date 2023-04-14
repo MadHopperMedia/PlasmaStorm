@@ -71,6 +71,9 @@ public:
 		float HitTime, 
 		class AWeapon* DamageCauser);
 
+	UPROPERTY(EditAnywhere)
+	bool bShowTraceCheck = true;
+
 protected:	
 	virtual void BeginPlay() override;
 	void SaveFramePackage(FFramePackage& Package);

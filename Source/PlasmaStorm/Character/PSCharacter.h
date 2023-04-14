@@ -107,8 +107,8 @@ public:
 	class UBoxComponent* foot_r;
 
 
-
-	
+	UPROPERTY(BlueprintReadWrite)
+	bool bShowTraceinfo = false;
 
 protected:
 

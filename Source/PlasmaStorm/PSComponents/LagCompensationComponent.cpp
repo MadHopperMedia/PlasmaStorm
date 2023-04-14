@@ -85,7 +85,7 @@ void ULagCompensationComponent::ShowFramePackage(const FFramePackage Package, co
 			FQuat(BoxInfo.Value.Rotation),
 			Color,
 			false,
-			4.f
+			100.f
 		);
 	}
 }
@@ -129,6 +129,7 @@ FServerSideRewindResault ULagCompensationComponent::ConfirmedHit(const FFramePac
 		EnableCharacterMeshCollision(HitCharacter, ECollisionEnabled::NoCollision);
 	}
 	
+	//
 	// enable collision for the head forst
 
 	UBoxComponent* HeadBox = HitCharacter->HitCollisionBoxes[FName("head")];
@@ -136,8 +137,8 @@ FServerSideRewindResault ULagCompensationComponent::ConfirmedHit(const FFramePac
 	HeadBox->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
 
 	FHitResult ConfirmHitResult;
-	const FVector TraceEnd = TraceStart + (HitLocation - TraceStart) * 1.25f;
-
+	const FVector TraceEnd = TraceStart + ((HitLocation - TraceStart) * 1.05f) + ((HitCharacter->PlayerVelocity() / 600) * 49); //  + (HitCharacter->GetActorUpVector() * -100)
+	
 	UWorld* World = GetWorld();
 	if (World)
 	{
@@ -147,6 +148,13 @@ FServerSideRewindResault ULagCompensationComponent::ConfirmedHit(const FFramePac
 			TraceEnd,
 			ECollisionChannel::ECC_Visibility
 		);
+		if (bShowTraceCheck)
+		{
+			DrawDebugSphere(World, TraceEnd, 5, 12, FColor::Yellow, true, 100);
+			DrawDebugLine(World, TraceStart, TraceEnd, FColor::Red, true, 100);
+			ShowFramePackage(CurrentFrame, FColor::Cyan);
+		}
+		
 		if (ConfirmHitResult.bBlockingHit) // We hit the head return early
 		{
 			ResetHitBoxes(HitCharacter, CurrentFrame);
@@ -167,7 +175,7 @@ FServerSideRewindResault ULagCompensationComponent::ConfirmedHit(const FFramePac
 					TraceStart,
 					TraceEnd,
 					ECollisionChannel::ECC_Visibility
-				);
+				);				
 				if (ConfirmHitResult.bBlockingHit)
 				{
 					ResetHitBoxes(HitCharacter, CurrentFrame);

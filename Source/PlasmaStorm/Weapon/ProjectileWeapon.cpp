@@ -58,10 +58,10 @@ void AProjectileWeapon::Fire(const FVector& HitTarget)
 				}
 
 			}
-			if (PSCharacter)
+			/*if (PSCharacter)
 			{
 				PSCharacter->Impulse = -FireHit.ImpactNormal * ImpulsePower;
-			}
+			}*/
 			if (ImpactParticles)
 			{
 				UGameplayStatics::SpawnEmitterAtLocation(
