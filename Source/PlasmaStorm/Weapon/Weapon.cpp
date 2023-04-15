@@ -163,15 +163,17 @@ void AWeapon::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* 
 	APSCharacter* PSCharacter = Cast<APSCharacter>(OtherActor);
 	if (PSCharacter)
 	{	
-		if (PSCharacter->GetEquippedWeapons() && PSCharacter->GetEquippedWeapons()->GetWeaponName() == WeaponName || PSCharacter->GetSecondaryWeapons() && PSCharacter->GetSecondaryWeapons()->GetWeaponName() == WeaponName) return;
-		PSCharacter->SetOverlappingWeapon(this);
+		if (PSCharacter->GetEquippedWeapons() && PSCharacter->GetEquippedWeapons()->GetWeaponName() != WeaponName && PSCharacter->GetSecondaryWeapons() && PSCharacter->GetSecondaryWeapons()->GetWeaponName() != WeaponName && PSCharacter->GetMountedWeapons() && PSCharacter->GetMountedWeapons()->GetWeaponName() != WeaponName)
+		{
+			PSCharacter->SetOverlappingWeapon(this);
+		}		
 	}
 }
 
 void AWeapon::OnSphereEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
 	APSCharacter* PSCharacter = Cast<APSCharacter>(OtherActor);
-	if (PSCharacter)
+	if (PSCharacter && GetOwner() == false)
 	{
 		PSCharacter->SetOverlappingWeapon(nullptr);
 	}

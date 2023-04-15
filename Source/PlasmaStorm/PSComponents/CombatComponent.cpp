@@ -351,7 +351,7 @@ void UCombatComponent::SetRecoil()
 void UCombatComponent::ReloadEmptyWeapon()
 {
 	
-	if (EquippedWeapon && EquippedWeapon->IsEmpty())
+	if (EquippedWeapon && EquippedWeapon->GetOwner() != nullptr && EquippedWeapon->IsEmpty())
 	{
 		Reload();
 	}
@@ -722,7 +722,7 @@ void UCombatComponent::StartFireTimer()
 
 void UCombatComponent::FireTimerFinished()
 {
-
+	
 	if (EquippedWeapon == nullptr) return;
 	bCanFire = true;
 	if (!Character->GetIsFlying())
@@ -741,6 +741,8 @@ void UCombatComponent::FireTimerFinished()
 	}
 	
 	ReloadEmptyWeapon();
+	
+	
 }
 
 void UCombatComponent::ServerFire_Implementation(const FVector_NetQuantize& TraceHitTarget)

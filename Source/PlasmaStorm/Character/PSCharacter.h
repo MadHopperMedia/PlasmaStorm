@@ -379,6 +379,7 @@ public:
 	FORCEINLINE FVector PlayerVelocity() const { return Speed; }
 	AWeapon* GetEquippedWeapons();
 	AWeapon* GetSecondaryWeapons();
+	AWeapon* GetMountedWeapons();
 	bool IsLocallyReloading();
 	FORCEINLINE ULagCompensationComponent* GetLagCompensation() const { return LagCompensation; }
 	

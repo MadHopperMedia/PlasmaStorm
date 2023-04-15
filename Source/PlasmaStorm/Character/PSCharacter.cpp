@@ -415,6 +415,18 @@ AWeapon* APSCharacter::GetSecondaryWeapons()
 	}
 }
 
+AWeapon* APSCharacter::GetMountedWeapons()
+{
+	if (Combat && Combat->MountedWeapon)
+	{
+		return Combat->MountedWeapon;
+	}
+	else
+	{
+		return nullptr;
+	}
+}
+
 void APSCharacter::SetOverlappingWeapon(AWeapon* Weapon)
 {
 	if (OverlappingWeapon)
@@ -431,6 +443,7 @@ void APSCharacter::SetOverlappingWeapon(AWeapon* Weapon)
 			OverlappingWeapon->ShowPickupWidget(true);
 		}
 	}
+	
 }
 
 void APSCharacter::OnRep_OverlappingWeapon(AWeapon* LastWeapon)
