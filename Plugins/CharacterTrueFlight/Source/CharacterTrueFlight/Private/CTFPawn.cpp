@@ -124,16 +124,27 @@ void ACTFPawn::TurnPawnTowardFlightDirection(float DeltaTime)
 {
 	if (CTFComponent == nullptr) return;
 	
-	
 
 	if (bIsFlying && bTransitioningfromFlight)
 	{
 		CameraBoom->bEnableCameraRotationLag = true;
 		CameraBoom->bEnableCameraLag = true;
-		CameraBoom->CameraLagSpeed = FMath::FInterpConstantTo(CameraBoom->CameraLagSpeed, 5, DeltaTime, 20);
-		float BoomYLocation = FMath::FInterpTo(CameraBoom->SocketOffset.Y, FlyingBoomLocation.Y, DeltaTime, 6);
-		//CameraBoom->SetRelativeLocation(FVector(0.0, BoomYLocation, 50.0));
+		if (CTFComponent->bIsBoosting)
+		{
+			CameraBoom->CameraLagSpeed = FMath::FInterpConstantTo(CameraBoom->CameraLagSpeed, 1, DeltaTime, 20);
+			CameraBoom->CameraLagMaxDistance = FMath::Lerp(CameraBoom->CameraLagMaxDistance, 200, .05);
+			
+		}
+		else 
+		{
+			CameraBoom->CameraLagSpeed = FMath::FInterpConstantTo(CameraBoom->CameraLagSpeed, 5, DeltaTime, 20);
+			CameraBoom->CameraLagMaxDistance = FMath::Lerp(CameraBoom->CameraLagMaxDistance, 100, .05);
+		}
+		
+		float BoomYLocation = FMath::FInterpTo(CameraBoom->SocketOffset.Y, FlyingBoomLocation.Y, DeltaTime, 6);		
 		CameraBoom->SocketOffset.Y = BoomYLocation;
+		float BoomZLocation = FMath::FInterpTo(CameraBoom->SocketOffset.Z, 35, DeltaTime, 6);
+		CameraBoom->SocketOffset.Z = BoomZLocation;
 
 		if (IsLocallyControlled())
 		{
@@ -181,9 +192,10 @@ void ACTFPawn::TurnPawnTowardFlightDirection(float DeltaTime)
 		Mesh->SetRelativeLocation(CurrentMeshLocation);
 		CameraBoom->bEnableCameraRotationLag = false;			
 		CameraBoom->CameraLagSpeed = FMath::FInterpConstantTo(CameraBoom->CameraLagSpeed, 50, DeltaTime, 10);
-		float BoomYLocation = FMath::FInterpTo(CameraBoom->SocketOffset.Y, StartingBoomLocation.Y, DeltaTime, 6);
-		//CameraBoom->SetRelativeLocation(FVector(0.0, BoomYLocation, 50.0));
-		CameraBoom->SocketOffset.Y = BoomYLocation; //(FVector(0.0, BoomYLocation, 50.0));
+		float BoomYLocation = FMath::FInterpTo(CameraBoom->SocketOffset.Y, StartingBoomLocation.Y, DeltaTime, 6);		
+		CameraBoom->SocketOffset.Y = BoomYLocation;
+		float BoomZLocation = FMath::FInterpTo(CameraBoom->SocketOffset.Z, 50, DeltaTime, 6);
+		CameraBoom->SocketOffset.Z = BoomZLocation;
 		if (CameraBoom->CameraLagSpeed == 50.f && CameraBoom->bEnableCameraLag == true)
 		{
 			CameraBoom->bEnableCameraLag = false;
@@ -205,10 +217,8 @@ void ACTFPawn::SetRotationForFlight(float DeltaTime)
 }
 
 void ACTFPawn::Turn(float Val)
-{
-	
+{	
 	if (CTFComponent == nullptr) return;	
-	
 	CTFComponent->YawInput = Val * YawSensitivity * GetWorld()->GetDeltaSeconds();
 }
 
@@ -269,8 +279,5 @@ void ACTFPawn::SetBoosting(bool Boosting)
 	CTFComponent->SetBoosting(Boosting);
 }
 
-void ACTFPawn::EnterFlight()
-{
 
-}
 

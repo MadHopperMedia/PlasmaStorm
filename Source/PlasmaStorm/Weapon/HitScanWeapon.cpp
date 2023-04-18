@@ -19,12 +19,19 @@ void AHitScanWeapon::Fire(const FVector& HitTarget)
 	APawn* OwnerPawn = Cast<APawn>(GetOwner());
 	if (OwnerPawn == nullptr) return;
 	AController* InstigatorController = OwnerPawn->GetController();
-
+	APSCharacter* OwnerCharacter = Cast<APSCharacter>(OwnerPawn);
+	
 	const USkeletalMeshSocket* MuzzleFlashSocket = GetWeaponMesh()->GetSocketByName("MuzzleFlash");
 	if (MuzzleFlashSocket)
 	{
+		
 		FTransform SocketTransform = MuzzleFlashSocket->GetSocketTransform(GetWeaponMesh());
 		FVector Start = SocketTransform.GetLocation();
+		if (OwnerCharacter && !OwnerCharacter->HasAuthority())
+		{
+			Start = Start + OwnerCharacter->PlayerVelocity().GetSafeNormal() * 15;
+		}		
+		
 
 		FHitResult FireHit;
 		WeaponTraceHit(Start, HitTarget, FireHit);

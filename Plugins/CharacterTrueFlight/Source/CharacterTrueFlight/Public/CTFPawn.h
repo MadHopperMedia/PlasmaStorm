@@ -17,7 +17,7 @@ public:
 	ACTFPawn();
 	virtual void BeginPlay() override;
 	virtual void PostInitializeComponents() override;
-	virtual void EnterFlight();
+	
 	
 
 	UPROPERTY(EditAnywhere, Category = CharactorProperties)
@@ -116,6 +116,7 @@ public:
 	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	FORCEINLINE float GetMaxSpeed() const { return CTFComponent->GetMaxSpeed(); }
+	
 	
 	
 

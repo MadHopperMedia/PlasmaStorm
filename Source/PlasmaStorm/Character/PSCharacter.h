@@ -50,7 +50,7 @@ public:
 	bool bDisableGameplay = false;
 	UFUNCTION(BlueprintImplementableEvent)
 	void ShowSniperScopeWidget(bool bShowScope);
-	virtual void EnterFlight() override;
+
 
 	UPROPERTY()
 		TMap<FName, class UBoxComponent*> HitCollisionBoxes;
@@ -118,14 +118,14 @@ protected:
 	void PlayerYaw(float Val);
 	void PlayerRoll(float Val);
 	void PlayerCrouch();
-	void EquipButtonPressed();
-	void EquipButtonReleased();
+	void SwitchWeaponButtonPressed();	
 	void AimButtonPressed();
 	void AimButtonReleased();
 	void AimOffset(float DeltaTime);
 	void FireButtonPressed();
 	void FireButtonReleased();
 	void ReloadButtonPressed();
+	void ReloadButtonReleased();
 	void PlayHitReactMontage();
 	void SetCollisionsAfterElimmed();
 	void GrenadeButtonPressed();
@@ -137,6 +137,7 @@ protected:
 	void RecieveDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, class AController* InstigatorController, AActor* DamageCauser);
 	void PollInit();
 	void UpdateHUDAmmo();
+	
 	
 private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))

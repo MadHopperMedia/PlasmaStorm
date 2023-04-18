@@ -222,6 +222,11 @@ void UCombatComponent::DropEquippedWeapon()
 	}
 }
 
+void DropGrenades()
+{
+	
+}
+
 bool UCombatComponent::ShouldSwapWeapons()
 {
 	return (EquippedWeapon != nullptr && SecondaryWeapon != nullptr);

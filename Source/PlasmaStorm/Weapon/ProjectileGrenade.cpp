@@ -4,6 +4,7 @@
 #include "ProjectileGrenade.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundCue.h"
+#include "PlasmaStorm/Character/PSCharacter.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 
 
@@ -33,6 +34,19 @@ void AProjectileGrenade::OnBounce(const FHitResult& ImpactResult, const FVector&
 {
 	if (BounceSound)
 	{
+		APSCharacter* HitPlayer = Cast<APSCharacter>(ImpactResult.GetActor());
+		if (HitPlayer)
+		{
+			APawn* OwnerPawn = Cast<APawn>(GetOwner());
+			if (OwnerPawn)
+			{
+				AController* OwnerController = OwnerPawn->Controller;
+				if (OwnerController)
+				{
+					UGameplayStatics::ApplyDamage(ImpactResult.GetActor(), 60.f, OwnerController, this, UDamageType::StaticClass());
+				}
+			}
+		}
 		UGameplayStatics::PlaySoundAtLocation(
 			this,
 			BounceSound,

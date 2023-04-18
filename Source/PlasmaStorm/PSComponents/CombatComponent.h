@@ -92,6 +92,7 @@ protected:
 	UPROPERTY(EditAnywhere)
 	float GrenadeThrowAngle = 10.f;
 	void DropEquippedWeapon();
+	void DropGrenades();
 	void AttachActorToRightHand(AActor* ActorToAttach);
 	void AttachActorToLeftHand(AActor* ActorToAttach);	
 	void AttachActorSecondarySocket(AActor* ActorToAttach);

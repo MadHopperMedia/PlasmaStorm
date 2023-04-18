@@ -15,17 +15,25 @@ void AProjectileWeapon::Fire(const FVector& HitTarget)
 {
 	Super::Fire(HitTarget);
 	FVector DistanceToTarget = GetActorLocation() - HitTarget;
-	if (DistanceToTarget.Size() < 5000 && GetWeaponType() != EWeaponType::EWT_RocketLauncher && GetWeaponType() != EWeaponType::EWT_GrenadeLauncher)
+	
+	if (DistanceToTarget.Size() < 3000 && GetWeaponType() != EWeaponType::EWT_RocketLauncher && GetWeaponType() != EWeaponType::EWT_GrenadeLauncher)
 	{
 		APawn* OwnerPawn = Cast<APawn>(GetOwner());
 		if (OwnerPawn == nullptr) return;
 		AController* InstigatorController = OwnerPawn->GetController();
+		APSCharacter* OwnerCharacter = Cast<APSCharacter>(OwnerPawn);
 
 		const USkeletalMeshSocket* MuzzleFlashSocket = GetWeaponMesh()->GetSocketByName("MuzzleFlash");
 		if (MuzzleFlashSocket)
 		{
+
 			FTransform SocketTransform = MuzzleFlashSocket->GetSocketTransform(GetWeaponMesh());
 			FVector Start = SocketTransform.GetLocation();
+			if (OwnerCharacter && !OwnerCharacter->HasAuthority())
+			{
+				Start = Start + OwnerCharacter->PlayerVelocity().GetSafeNormal() * 15;
+			}
+
 
 			FHitResult FireHit;
 			WeaponTraceHit(Start, HitTarget, FireHit);
@@ -58,10 +66,10 @@ void AProjectileWeapon::Fire(const FVector& HitTarget)
 				}
 
 			}
-			/*if (PSCharacter)
+			if (PSCharacter)
 			{
 				PSCharacter->Impulse = -FireHit.ImpactNormal * ImpulsePower;
-			}*/
+			}
 			if (ImpactParticles)
 			{
 				UGameplayStatics::SpawnEmitterAtLocation(
@@ -125,12 +133,7 @@ void AProjectileWeapon::Fire(const FVector& HitTarget)
 				}
 			}
 		}
-	}
-
-	
-
-	
-	
+	}	
 }
 
 void AProjectileWeapon::WeaponTraceHit(const FVector& TraceStart, const FVector& HitTarget, FHitResult& OutHit)

@@ -347,7 +347,11 @@ void UCTFComponent::Turn(float Val)
 	
 	if (bIsFlying)
 	{
-		YawInput = FMath::FInterpTo(YawInput, Val, GetWorld()->GetDeltaSeconds(), 2.f);
+		
+		
+		YawInput = FMath::FInterpTo(YawInput, Val, GetWorld()->GetDeltaSeconds(), 1.5f);
+		
+		
 	}
 	else
 	{
@@ -676,20 +680,14 @@ void UCTFComponent::JumpButtonPressed()
 	else if(MovementState == EMovementState::EMS_Hovering || MovementState == EMovementState::EMS_Flying)
 	{
 		SetMovementState(EMovementState::EMS_Falling);
-		if (PlayerCharacter)
-		{
-			PlayerCharacter->EnterFlight();
-		}
+		
 	}
 	else if(bCanFly)
 	{
 		SetMovementState(EMovementState::EMS_Hovering);
 		GetWorld()->GetTimerManager().ClearTimer(JumpTimerHandle);
 		Server_EnterFlight();
-		if (PlayerCharacter)
-		{
-			PlayerCharacter->EnterFlight();
-		}
+		
 	}	
 }
 
