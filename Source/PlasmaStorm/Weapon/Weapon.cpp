@@ -43,7 +43,7 @@ AWeapon::AWeapon()
 {
 	 Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	 DOREPLIFETIME(AWeapon, WeaponState);
-	 
+	 DOREPLIFETIME_CONDITION(AWeapon, bUseServerSideRewind, COND_OwnerOnly);	 
 }
 
 void AWeapon::BeginPlay()
@@ -97,6 +97,11 @@ void AWeapon::OnRep_WeaponState()
 	OnWeaponStateSet();
 }
 
+void AWeapon::OnPingTooHigh(bool bPingTooHigh)
+{
+	bUseServerSideRewind = !bPingTooHigh;
+}
+
 void AWeapon::OnEquipped()
 {
 	ShowPickupWidget(false);
@@ -114,6 +119,16 @@ void AWeapon::OnEquipped()
 	}*/
 
 	GetWorldTimerManager().ClearTimer(DroppedTimer);
+
+	PSOwnerCharacter = PSOwnerCharacter == nullptr ? Cast<APSCharacter>(GetOwner()) : PSOwnerCharacter;
+	if (PSOwnerCharacter && bUseServerSideRewind)
+	{
+		PSOwnerController = PSOwnerController == nullptr ? Cast<APSPlayerController>(PSOwnerCharacter->Controller) : PSOwnerController;
+		if (PSOwnerController && HasAuthority() && !PSOwnerController->HighPingDelegate.IsBound())
+		{
+			PSOwnerController->HighPingDelegate.AddDynamic(this, &AWeapon::OnPingTooHigh);
+		}
+	}
 }
 
 void AWeapon::OnEquippedSecondary()
@@ -133,6 +148,16 @@ void AWeapon::OnEquippedSecondary()
 	}*/
 	
 	GetWorldTimerManager().ClearTimer(DroppedTimer);
+
+	/*PSOwnerCharacter = PSOwnerCharacter == nullptr ? Cast<APSCharacter>(GetOwner()) : PSOwnerCharacter;
+	if (PSOwnerCharacter && bUseServerSideRewind)
+	{
+		PSOwnerController = PSOwnerController == nullptr ? Cast<APSPlayerController>(PSOwnerCharacter->Controller) : PSOwnerController;
+		if (PSOwnerController && HasAuthority() && PSOwnerController->HighPingDelegate.IsBound())
+		{
+			PSOwnerController->HighPingDelegate.RemoveDynamic(this, &AWeapon::OnPingTooHigh);
+		}
+	}*/
 }
 
 void AWeapon::OnEquippedMountedWeapon()
@@ -142,6 +167,8 @@ void AWeapon::OnEquippedMountedWeapon()
 	WeaponMesh->SetSimulatePhysics(false);
 	WeaponMesh->SetEnableGravity(false);
 	WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	
 }
 
 void AWeapon::OnDropped()
@@ -156,6 +183,8 @@ void AWeapon::OnDropped()
 	WeaponMesh->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
 	WeaponMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Block);
 	WeaponMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Ignore);
+
+	
 }
 
 void AWeapon::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -186,7 +215,6 @@ void AWeapon::ShowPickupWidget(bool bShowWidget)
 		//PickupWidget->SetVisibility(bShowWidget);
 	}
 }
-
 
 void AWeapon::Fire(const FVector& HitTarget)
 {

@@ -53,10 +53,15 @@ void APSPlayerController::CheckPing(float DeltaTime)
 		PlayerState = PlayerState == nullptr ? GetPlayerState<APlayerState>() : PlayerState;
 		if (PlayerState)
 		{
-			if (PlayerState->GetPing() * 4 > HighPingThreshold) // Ping is compressed; it's actually ping / 4
+			if (PlayerState->GetCompressedPing() * 4 > HighPingThreshold) // Ping is compressed; it's actually ping / 4
 			{
 				HighPingWarning();
 				PingAnimationRunningtime = 0.f;
+				//ServerReportPingStatus(true);
+			}
+			else
+			{
+				//ServerReportPingStatus(false);
 			}
 		}
 		HighPingRunningTime = 0.f;
@@ -70,6 +75,12 @@ void APSPlayerController::CheckPing(float DeltaTime)
 		}
 	}
 }
+
+void APSPlayerController::ServerReportPingStatus_Implementation(bool bHighPing)
+{
+	//HighPingDelegate.Broadcast(bHighPing);
+}
+
 
 void APSPlayerController::PollInit()
 {

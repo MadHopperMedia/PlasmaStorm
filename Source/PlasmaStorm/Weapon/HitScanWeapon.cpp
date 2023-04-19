@@ -38,7 +38,8 @@ void AHitScanWeapon::Fire(const FVector& HitTarget)
 		APSCharacter* PSCharacter = Cast<APSCharacter>(FireHit.GetActor());
 		if (PSCharacter  && InstigatorController)
 		{
-			if (OwnerPawn->IsLocallyControlled() && HasAuthority())
+			bool bCauseAuthDamage = !bUseServerSideRewind || OwnerPawn->IsLocallyControlled();
+			if (HasAuthority() && bCauseAuthDamage)
 			{
 				UGameplayStatics::ApplyDamage(
 					PSCharacter,
@@ -52,7 +53,7 @@ void AHitScanWeapon::Fire(const FVector& HitTarget)
 			{
 				PSOwnerCharacter = PSOwnerCharacter == nullptr ? Cast<APSCharacter>(OwnerPawn) : PSOwnerCharacter;
 				PSOwnerController = PSOwnerController == nullptr ? Cast<APSPlayerController>(InstigatorController) : PSOwnerController;
-				if (PSOwnerController && PSOwnerCharacter && PSOwnerCharacter->GetLagCompensation())
+				if (PSOwnerController && PSOwnerCharacter && PSOwnerCharacter->GetLagCompensation() && PSOwnerCharacter->IsLocallyControlled())
 				{
 					PSOwnerCharacter->GetLagCompensation()->ServerScoreRequest(PSCharacter,
 						Start,

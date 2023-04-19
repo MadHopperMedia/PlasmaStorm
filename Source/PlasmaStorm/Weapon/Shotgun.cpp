@@ -5,6 +5,8 @@
 #include "Engine/SkeletalMeshSocket.h"
 #include "PlasmaStorm/Character/PSCharacter.h"
 #include "Kismet/GameplayStatics.h"
+#include "PlasmaStorm/PSComponents/LagCompensationComponent.h"
+#include "PlasmaStorm/PlayerController/PSPlayerController.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Sound/SoundCue.h"
@@ -63,16 +65,36 @@ void AShotgun::FireShotgun(const TArray<FVector_NetQuantize>& HitTargets)
 				}
 			}
 		}
+		TArray<APSCharacter*> HitCharacters;
 		for (auto HitPair : HitMap)
 		{
-			if (HitPair.Key && HasAuthority() && InstigatorController)
+			if (HitPair.Key && InstigatorController)
 			{
-				UGameplayStatics::ApplyDamage(
-					HitPair.Key, // Character that was hit 
-					Damage * HitPair.Value, // Multiply Damage by number of times hit
-					InstigatorController,
-					this,
-					UDamageType::StaticClass()
+				bool bCauseAuthDamage = !bUseServerSideRewind || OwnerPawn->IsLocallyControlled();
+				if (HasAuthority() && bCauseAuthDamage)
+				{
+					UGameplayStatics::ApplyDamage(
+						HitPair.Key, // Character that was hit 
+						Damage * HitPair.Value, // Multiply Damage by number of times hit
+						InstigatorController,
+						this,
+						UDamageType::StaticClass()
+					);
+				}
+				HitCharacters.Add(HitPair.Key);
+			}
+		}
+		if (!HasAuthority() && bUseServerSideRewind)
+		{
+			PSOwnerCharacter = PSOwnerCharacter == nullptr ? Cast<APSCharacter>(OwnerPawn) : PSOwnerCharacter;
+			PSOwnerController = PSOwnerController == nullptr ? Cast<APSPlayerController>(InstigatorController) : PSOwnerController;
+			if (PSOwnerController && PSOwnerCharacter && PSOwnerCharacter->GetLagCompensation() && PSOwnerCharacter->IsLocallyControlled())
+			{
+				PSOwnerCharacter->GetLagCompensation()->ShotgunServerScoreRequest(
+					HitCharacters,
+					Start,
+					HitTargets,
+					PSOwnerController->GetServerTime() - PSOwnerController->SingleTripTime
 				);
 			}
 		}

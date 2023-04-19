@@ -6,6 +6,9 @@
 #include "GameFramework/PlayerController.h"
 #include "PSPlayerController.generated.h"
 
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FHighPingDelegate, bool, bPingToHigh);
+
 /**
  * 
  */
@@ -36,6 +39,8 @@ public:
 	UPROPERTY()
 	class APSCharacter* PSCharacter;
 	float SingleTripTime = 0.f;
+
+	FHighPingDelegate HighPingDelegate;
 	
 protected:
 
@@ -127,6 +132,10 @@ private:
 
 	UPROPERTY(EditAnywhere)
 	float CheckPingFrenquency = 20.f;
+
+	UFUNCTION(Server, Reliable)
+	void ServerReportPingStatus(bool bHighPing);
+
 	UPROPERTY(EditAnywhere)
 	float HighPingThreshold = 50.f;
 	

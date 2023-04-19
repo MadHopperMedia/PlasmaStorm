@@ -21,6 +21,10 @@ public:
 private:
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<class AProjectile> ProjectileClass;
+
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<class AProjectile> ServerSideRewindProjectileClass;
+	void SpawnProjectile(const FVector& HitTarget);
 	void WeaponTraceHit(const FVector& TraceStart, const FVector& HitTarget, FHitResult& OutHit);	
 	UPROPERTY(EditAnywhere)
 	class UParticleSystem* ImpactParticles;
