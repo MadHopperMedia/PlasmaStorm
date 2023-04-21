@@ -34,6 +34,8 @@ public:
 	void PlayThrowGrenadeMontage();
 	void SpawnDefaultWeapon();
 	void PlayReloadMontage();
+	void PlayHitReactMontage();
+	void PlaySwapMontage();
 	UFUNCTION(Client, Unreliable)
 	void PlayKillSound();
 	void Elim();
@@ -110,6 +112,8 @@ public:
 	UPROPERTY(BlueprintReadWrite)
 	bool bShowTraceinfo = false;
 
+	bool bFinishedSwapping = true;
+
 protected:
 
 	void ForwardMovement(float Val);
@@ -126,7 +130,7 @@ protected:
 	void FireButtonReleased();
 	void ReloadButtonPressed();
 	void ReloadButtonReleased();
-	void PlayHitReactMontage();
+	
 	void SetCollisionsAfterElimmed();
 	void GrenadeButtonPressed();
 	void BoostButtonPressed();
@@ -163,6 +167,8 @@ private:
 
 	UFUNCTION(Server, Reliable)
 	void ServerEquipButtonPressed(bool IsEquipingWeapon);
+	UFUNCTION(Server, Reliable)
+	void ServerSwapWeaponsButtonPressed();
 
 
 	FTimerHandle EquipTimer;
@@ -221,6 +227,9 @@ private:
 	UAnimMontage* ReloadMontage;
 	UPROPERTY(EditAnywhere, Category = Combat)
 	UAnimMontage* ThrowGrenadeMontage;
+	UPROPERTY(EditAnywhere, Category = Combat)
+	UAnimMontage* SwapMontage;
+
 	UPROPERTY(EditAnywhere)
 	float	OverlappingCharacterMultiplier = 1;	
 	UPROPERTY(EditAnywhere)

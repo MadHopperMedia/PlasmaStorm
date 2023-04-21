@@ -458,34 +458,27 @@ void APSCharacter::OnRep_OverlappingWeapon(AWeapon* LastWeapon)
 }
 
 void APSCharacter::SwitchWeaponButtonPressed()
-{	
-	if (Combat && Combat->CombatState == ECombatState::ECS_Unoccupied && !bIsFlying)
-	{
-		EquippingWeapon = false;
-		ServerEquipButtonPressed(false);		
-		
+{
+	if (bIsFlying || Combat == nullptr) return;
+		ServerSwapWeaponsButtonPressed();
+		if (!HasAuthority() && Combat->CombatState == ECombatState::ECS_Unoccupied)
+		{
+			PlaySwapMontage();
+			Combat->CombatState = ECombatState::ECS_SwappingWeapons;
+			bFinishedSwapping = false;
+		}	
+
 		if (Combat->bAiming)
 		{
 			Combat->SetAiming(false);
 		}		
-	}	
 }
 
-void APSCharacter::ServerEquipButtonPressed_Implementation(bool IsEquipingWeapon)
+void APSCharacter::ServerSwapWeaponsButtonPressed_Implementation()
 {
-	EquippingWeapon = IsEquipingWeapon;
 	if (Combat && HasAuthority())
 	{
-		if (OverlappingWeapon && EquippingWeapon == true)
-		{
-			EquippingWeapon = false;
-			Combat->EquipWeapon(OverlappingWeapon);			
-		}
-		else if (Combat->ShouldSwapWeapons())
-		{
-			EquippingWeapon = false;
-			Combat->SwapWeapons();
-		}
+		Combat->SwapWeapons();
 	}
 }
 
@@ -817,6 +810,15 @@ void APSCharacter::PlayHitReactMontage()
 	}
 }
 
+void APSCharacter::PlaySwapMontage()
+{
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && SwapMontage)
+	{
+		AnimInstance->Montage_Play(SwapMontage);
+	}
+}
+
 FVector APSCharacter::GetHitTarget() const
 {
 	if (Combat == nullptr) return FVector();
@@ -1110,6 +1112,19 @@ void APSCharacter::EquipTimerFinished()
 	{
 		EquippingWeapon = false;
 		ServerEquipButtonPressed(true);
+	}
+}
+
+void APSCharacter::ServerEquipButtonPressed_Implementation(bool IsEquipingWeapon)
+{
+	EquippingWeapon = IsEquipingWeapon;
+	if (Combat && HasAuthority())
+	{
+		if (OverlappingWeapon && EquippingWeapon == true)
+		{
+			EquippingWeapon = false;
+			Combat->EquipWeapon(OverlappingWeapon);
+		}
 	}
 }
 

@@ -167,7 +167,6 @@ void AWeapon::OnEquippedMountedWeapon()
 	WeaponMesh->SetSimulatePhysics(false);
 	WeaponMesh->SetEnableGravity(false);
 	WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
 	
 }
 
@@ -339,8 +338,6 @@ bool AWeapon::IsEmpty()
 {
 	return Ammo <= 0;
 }
-
-
 
 FVector AWeapon::TraceEndWithScatter(const FVector& HitTarget)
 {

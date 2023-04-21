@@ -229,29 +229,15 @@ void DropGrenades()
 
 bool UCombatComponent::ShouldSwapWeapons()
 {
-	return (EquippedWeapon != nullptr && SecondaryWeapon != nullptr);
+	return (EquippedWeapon != nullptr || SecondaryWeapon != nullptr);
 }
 
 void UCombatComponent::SwapWeapons()
 {
-	if (CombatState != ECombatState::ECS_Unoccupied) return;
+	if (CombatState != ECombatState::ECS_Unoccupied || Character == nullptr) return;
 	
-	AWeapon* TempWeapon = EquippedWeapon;
-	EquippedWeapon = SecondaryWeapon;
-	SecondaryWeapon = TempWeapon;
-
-	EquippedWeapon->SetWeaponState(EWeaponState::EWS_Equipped);
-	AttachActorToRightHand(EquippedWeapon);
-	EquippedWeapon->SetHUDAmmo();
-	UpdateCarriedAmmo();
-	PlayEquipWeaponSound(EquippedWeapon);
-
-	bPlaySecondaryEquip = false;
-	SecondaryWeapon->SetWeaponState(EWeaponState::EWS_EquippedSecondary);
-	AttachActorSecondarySocket(SecondaryWeapon);
-	ReloadEmptyWeapon();
-	SetWeaponRange();
-	SetRecoil();
+	Character->PlaySwapMontage();
+	CombatState = ECombatState::ECS_SwappingWeapons;	
 }
 
 void UCombatComponent::SwapToMountedWeapon()
@@ -411,6 +397,38 @@ void UCombatComponent::FinishReloading()
 	}	
 }
 
+void UCombatComponent::FinishSwap()
+{
+	if (Character && Character->HasAuthority())
+	{
+		CombatState = ECombatState::ECS_Unoccupied;
+		Character->bFinishedSwapping = true;
+	}
+}
+
+void UCombatComponent::FinishSwapAttachWeapons()
+{
+	if (Character && Character->HasAuthority())
+	{
+		AWeapon* TempWeapon = EquippedWeapon;
+		EquippedWeapon = SecondaryWeapon;
+		SecondaryWeapon = TempWeapon;
+		PlayEquipWeaponSound(EquippedWeapon);
+	}
+	
+	EquippedWeapon->SetWeaponState(EWeaponState::EWS_Equipped);
+	AttachActorToRightHand(EquippedWeapon);
+	EquippedWeapon->SetHUDAmmo();
+	UpdateCarriedAmmo();
+	
+	SetWeaponRange();
+	SetRecoil();
+
+	
+	SecondaryWeapon->SetWeaponState(EWeaponState::EWS_EquippedSecondary);
+	AttachActorSecondarySocket(SecondaryWeapon);	
+}
+
 void UCombatComponent::UpdateAmmoValues()
 {
 	if (Character == nullptr || EquippedWeapon == nullptr) return;
@@ -457,6 +475,12 @@ void UCombatComponent::OnRep_CombatState()
 			AttachActorToLeftHand(EquippedWeapon);
 			ShowAttachedGrenade(true);
 		}
+		break;
+	case ECombatState::ECS_SwappingWeapons:
+		if (Character && !Character->IsLocallyControlled())		
+		{
+			Character->PlaySwapMontage();
+		}		
 		break;
 	}
 }

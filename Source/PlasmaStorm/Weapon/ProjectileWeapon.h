@@ -38,6 +38,8 @@ private:
 	USoundCue* HitSound;
 	UPROPERTY(EditAnywhere)
 	float ImpulsePower = 2000;
+	UPROPERTY(EditAnywhere)
+	float DistanceForHitscanSwitch = 3000;
 	
 
 public:

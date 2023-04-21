@@ -16,7 +16,7 @@ void AProjectileWeapon::Fire(const FVector& HitTarget)
 	Super::Fire(HitTarget);
 	FVector DistanceToTarget = GetActorLocation() - HitTarget;
 	
-	if (DistanceToTarget.Size() < 3000 && GetWeaponType() != EWeaponType::EWT_RocketLauncher && GetWeaponType() != EWeaponType::EWT_GrenadeLauncher)
+	if (DistanceToTarget.Size() < DistanceForHitscanSwitch && GetWeaponType() != EWeaponType::EWT_RocketLauncher && GetWeaponType() != EWeaponType::EWT_GrenadeLauncher)
 	{
 		APawn* OwnerPawn = Cast<APawn>(GetOwner());
 		if (OwnerPawn == nullptr) return;
@@ -126,7 +126,14 @@ void AProjectileWeapon::SpawnProjectile(const FVector& HitTarget)
 		FRotator TargetRotation = ToTarget.Rotation();
 		FActorSpawnParameters SpawnParams;
 		SpawnParams.Owner = GetOwner();
-		SpawnParams.Instigator = InstigatorPawn;
+		if (InstigatorPawn)
+		{
+			SpawnParams.Instigator = InstigatorPawn;
+		}
+		else
+		{
+			return;
+		}
 
 		AProjectile* SpawnedProjectile = nullptr;
 		if (bUseServerSideRewind && ServerSideRewindProjectileClass)

@@ -31,6 +31,11 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void FinishReloading();
 	UFUNCTION(BlueprintCallable)
+	void FinishSwap();
+	UFUNCTION(BlueprintCallable)
+	void FinishSwapAttachWeapons();
+
+	UFUNCTION(BlueprintCallable)
 	void ThrowGrenadeFinished();
 	UFUNCTION(BlueprintCallable)
 	void LaunchGrenade();
