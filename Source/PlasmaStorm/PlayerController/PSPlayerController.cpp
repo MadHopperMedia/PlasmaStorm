@@ -44,6 +44,7 @@ void APSPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(APSPlayerController, MatchState);
+	DOREPLIFETIME(APSPlayerController, bShowTeamScores);
 }
 
 void APSPlayerController::Tick(float DeltaTime)
@@ -115,6 +116,20 @@ void APSPlayerController::ShowPauseMenu()
 
 }
 
+void APSPlayerController::OnRep_ShowTeamScores()
+{
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Blue, FString(TEXT("Init Team Scores")));
+	}
+	if (bShowTeamScores)
+	{
+		InitTeamScores();
+		
+	}
+	
+}
+
 void APSPlayerController::PollInit()
 {
 	if (CharacterOverlay == nullptr)
@@ -132,6 +147,7 @@ void APSPlayerController::PollInit()
 				if (bInitializeDefeats)SetHUDDefeats(HUDDefeats);
 				if (bInitializeCarriedAmmo) SetHUDCarriedAmmo(HUDCarriedAmmo);
 				if (bInitializeWeaponAmmo) SetHUDWeaponAmmo(HUDWeaponAmmo);
+				
 				
 
 				PSCharacter = PSCharacter == nullptr ? Cast<APSCharacter>(GetPawn()) : PSCharacter;
@@ -168,7 +184,8 @@ void APSPlayerController::ServerCheckMatchState_Implementation()
 		CooldownTime = GameMode->CooldownTime;
 		LevelStartingTime = GameMode->LevelStartingTime;
 		MatchState = GameMode->GetMatchState();
-		ClientJoinMidGame(MatchState, WarmUpTime, MatchTime, CooldownTime, LevelStartingTime);
+		bShowTeamScores = GameMode->bTeamsMatch;
+		ClientJoinMidGame(MatchState, WarmUpTime, MatchTime, CooldownTime, LevelStartingTime, bShowTeamScores);
 
 		if (PSHUD && MatchState == MatchState::WaitingToStart)
 		{
@@ -177,14 +194,14 @@ void APSPlayerController::ServerCheckMatchState_Implementation()
 	}
 }
 
-void APSPlayerController::ClientJoinMidGame_Implementation(FName StateOfMatch, float WarmUp, float Match, float Cooldown, float StartingTime)
+void APSPlayerController::ClientJoinMidGame_Implementation(FName StateOfMatch, float WarmUp, float Match, float Cooldown, float StartingTime, bool bIsTeamsMatch)
 {
 	WarmUpTime = WarmUp;
 	MatchTime = Match;
 	CooldownTime = Cooldown;
 	LevelStartingTime = StartingTime;
 	MatchState = StateOfMatch;
-	OnMatchStateSet(MatchState);
+	OnMatchStateSet(MatchState, bIsTeamsMatch);
 
 	if (PSHUD && MatchState == MatchState::WaitingToStart)
 	{
@@ -426,13 +443,13 @@ void APSPlayerController::ReceivedPlayer()
 	}
 }
 
-void APSPlayerController::OnMatchStateSet(FName State)
+void APSPlayerController::OnMatchStateSet(FName State, bool bTeamsMatch)
 {
 	MatchState = State;
 
 	if (MatchState == MatchState::InProgress)
 	{
-		HandleMatchHasStarted();
+		HandleMatchHasStarted(bTeamsMatch);
 		if (IsLocalController())
 		{
 			ServerRequestServerTime(GetWorld()->GetTimeSeconds());
@@ -465,13 +482,13 @@ void APSPlayerController::OnRep_MatchState()
 		if (IsLocalController())
 		{
 			ServerRequestServerTime(GetWorld()->GetTimeSeconds());
-		}
-		
+		}		
 	}
 }
 
-void APSPlayerController::HandleMatchHasStarted()
+void APSPlayerController::HandleMatchHasStarted(bool bTeamsMatch)
 {
+	if(HasAuthority()) bShowTeamScores = bTeamsMatch;
 	PSHUD = PSHUD == nullptr ? Cast<APSHud>(GetHUD()) : PSHUD;
 	if (PSHUD)
 	{
@@ -480,6 +497,11 @@ void APSPlayerController::HandleMatchHasStarted()
 		{
 			PSHUD->Announcement->SetVisibility(ESlateVisibility::Hidden);
 		}
+		if (!HasAuthority()) return;
+		if (bTeamsMatch)
+		{
+			InitTeamScores();
+		}		
 	}
 }
 
@@ -533,6 +555,60 @@ void APSPlayerController::HandleCooldown()
 
 		}
 	}
+}
+
+void APSPlayerController::HideTeamScores()
+{
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Blue, FString(TEXT("Init Team Scores")));
+	}
+	PSHUD = PSHUD == nullptr ? Cast<APSHud>(GetHUD()) : PSHUD;
+	if (PSHUD && PSHUD->CharacterOverlay && PSHUD->CharacterOverlay->RedScore && PSHUD->CharacterOverlay->BlueScore && PSHUD->CharacterOverlay->BlueTeamScoreText && PSHUD->CharacterOverlay->RedTeamScoreText)
+	{
+		PSHUD->CharacterOverlay->RedScore->SetText(FText());
+		PSHUD->CharacterOverlay->BlueScore->SetText(FText());
+		PSHUD->CharacterOverlay->RedTeamScoreText->SetText(FText());
+		PSHUD->CharacterOverlay->BlueTeamScoreText->SetText(FText());
+	}
+}
+
+void APSPlayerController::InitTeamScores()
+{
+	
+	PSHUD = PSHUD == nullptr ? Cast<APSHud>(GetHUD()) : PSHUD;
+	if (PSHUD && PSHUD->CharacterOverlay && PSHUD->CharacterOverlay->RedScore && PSHUD->CharacterOverlay->BlueScore && PSHUD->CharacterOverlay->BlueTeamScoreText && PSHUD->CharacterOverlay->RedTeamScoreText)
+	{
+		
+		FString Zero("0");
+		PSHUD->CharacterOverlay->RedScore->SetText(FText::FromString(Zero));
+		PSHUD->CharacterOverlay->BlueScore->SetText(FText::FromString(Zero));
+		PSHUD->CharacterOverlay->RedTeamScoreText->SetText(FText::FromString("Red Score:"));
+		PSHUD->CharacterOverlay->BlueTeamScoreText->SetText(FText::FromString("Blue Score:"));
+	}
+}
+
+void APSPlayerController::SetHUDRedTeamScore(int32 RedScore)
+{
+
+	PSHUD = PSHUD == nullptr ? Cast<APSHud>(GetHUD()) : PSHUD;
+	if (PSHUD && PSHUD->CharacterOverlay && PSHUD->CharacterOverlay->RedScore)
+	{
+		FString ScoreText = FString::Printf(TEXT("%d"), RedScore);
+		PSHUD->CharacterOverlay->RedScore->SetText(FText::FromString(ScoreText));
+		
+	}
+}
+
+void APSPlayerController::SetHUDBlueTeamScore(int32 BlueScore)
+{
+	PSHUD = PSHUD == nullptr ? Cast<APSHud>(GetHUD()) : PSHUD;
+	if (PSHUD && PSHUD->CharacterOverlay && PSHUD->CharacterOverlay->BlueScore)
+	{
+		FString ScoreText = FString::Printf(TEXT("%d"), BlueScore);
+		PSHUD->CharacterOverlay->BlueScore->SetText(FText::FromString(ScoreText));
+
+	}	
 }
 
 void APSPlayerController::SetInverted(bool Inverted)

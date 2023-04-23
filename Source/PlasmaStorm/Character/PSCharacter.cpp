@@ -284,7 +284,7 @@ void APSCharacter::PollInit()
 		{
 			PSPlayerState->AddToScore(0.f);
 			PSPlayerState->AddToDefeats(0);
-			
+			SetTeamColor(PSPlayerState->GetTeam());
 		}
 	}
 }
@@ -352,6 +352,26 @@ void APSCharacter::PlayerPitch(float Val)
 		}
 	}	
 	LookUp((Val * OverlappingCharacterMultiplier));
+}
+
+void APSCharacter::SetTeamColor(ETeam Team)
+{
+	if (GetMesh() == nullptr || Material == nullptr || Material1 == nullptr || RedMaterial == nullptr || RedMaterial1 == nullptr || BlueMaterial == nullptr || BlueMaterial1 == nullptr) return;
+	switch (Team)
+	{
+	case ETeam::ET_NoTeam:
+		GetMesh()->SetMaterial(0, Material);
+		GetMesh()->SetMaterial(1, Material1);
+		break;
+	case ETeam::ET_RedTeam:
+		GetMesh()->SetMaterial(0, RedMaterial);
+		GetMesh()->SetMaterial(1, RedMaterial1);
+		break;
+	case ETeam::ET_BlueTeam:
+		GetMesh()->SetMaterial(0, BlueMaterial);
+		GetMesh()->SetMaterial(1, BlueMaterial1);
+		break;
+	}
 }
 
 void APSCharacter::PlayerYaw(float Val)
@@ -1026,18 +1046,21 @@ void APSCharacter::ServerLeaveGame_Implementation()
 void APSCharacter::MulticastElim_Implementation(bool bPlayerLeftGame)
 {		
 	bLeftGame = bPlayerLeftGame;
-	if (DissolveMaterialInstance)
+	if (Material)
 	{		
-		DynamicDissolveMaterialInstance = UMaterialInstanceDynamic::Create(DissolveMaterialInstance, this);
+		//DynamicDissolveMaterialInstance = UMaterialInstanceDynamic::Create(DissolveMaterialInstance, this);
+		DynamicDissolveMaterialInstance = UMaterialInstanceDynamic::Create(GetMesh()->GetMaterial(0), this);
+		
 
 		GetMesh()->SetMaterial(0, DynamicDissolveMaterialInstance);
 		DynamicDissolveMaterialInstance->SetScalarParameterValue(TEXT("Dissolve"), 0.55f);
 		DynamicDissolveMaterialInstance->SetScalarParameterValue(TEXT("Glow"), DissolveGlowAmount);
 	}
 
-	if (DissolveMaterialInstance1)
+	if (Material1)
 	{
-		DynamicDissolveMaterialInstance1 = UMaterialInstanceDynamic::Create(DissolveMaterialInstance1, this);
+		//DynamicDissolveMaterialInstance1 = UMaterialInstanceDynamic::Create(DissolveMaterialInstance1, this);
+		DynamicDissolveMaterialInstance1 = UMaterialInstanceDynamic::Create(GetMesh()->GetMaterial(1), this);
 
 		GetMesh()->SetMaterial(1, DynamicDissolveMaterialInstance1);
 		DynamicDissolveMaterialInstance1->SetScalarParameterValue(TEXT("Dissolve"), 0.55f);
@@ -1106,6 +1129,7 @@ void APSCharacter::UpdateDisolveMaterial(float DissolveValue)
 	if (DynamicDissolveMaterialInstance)
 	{
 		DynamicDissolveMaterialInstance->SetScalarParameterValue(TEXT("Dissolve"), DissolveValue);
+		
 	}
 	if (DynamicDissolveMaterialInstance1)
 	{

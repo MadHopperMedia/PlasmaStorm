@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "CTFPawn.h"
+#include "PlasmaStorm/PSTypes/Team.h"
 #include "PlasmaStorm/PSTypes/TurningInPlace.h"
 #include "PlasmaStorm/PSTypes/FlyingRotation.h"
 #include "Components/TimelineComponent.h"
@@ -46,8 +47,7 @@ public:
 	void MulticastElim(bool bPlayerLeftGame);
 	UFUNCTION(Server, Reliable)
 	void ServerLeaveGame();
-	void PlayerPitch(float Val);
-	
+	void PlayerPitch(float Val);	
 	UFUNCTION(NetMulticast, Reliable)
 	void MulticastShieldRecharge();
 	UPROPERTY(Replicated)
@@ -56,6 +56,8 @@ public:
 	bool bDisableGameplay = false;
 	UFUNCTION(BlueprintImplementableEvent)
 	void ShowSniperScopeWidget(bool bShowScope);
+
+	void SetTeamColor(ETeam Team);
 
 
 	UPROPERTY()
@@ -293,9 +295,20 @@ private:
 
 	bool bLeftGame = false;
 
+	/**
+	* Team Colors
+	*/
 	
+	UPROPERTY(EditAnywhere, Category = Elim)
+	UMaterialInstance* RedMaterial;
 
-	
+	UPROPERTY(EditAnywhere, Category = Elim)
+	UMaterialInstance* RedMaterial1;
+
+	UPROPERTY(EditAnywhere, Category = Elim)
+	UMaterialInstance* BlueMaterial;
+	UPROPERTY(EditAnywhere, Category = Elim)
+	UMaterialInstance* BlueMaterial1;
 
 	/**
 	* Dissolve effect
@@ -320,9 +333,9 @@ private:
 	UMaterialInstanceDynamic* DynamicDissolveMaterialInstance1;
 
 	UPROPERTY(EditAnywhere, Category = Elim)
-	UMaterialInstance* DissolveMaterialInstance;
+	UMaterialInstance* Material;
 	UPROPERTY(EditAnywhere, Category = Elim)
-	UMaterialInstance* DissolveMaterialInstance1;
+	UMaterialInstance* Material1;
 	UPROPERTY()
 	class APSPlayerState* PSPlayerState;
 

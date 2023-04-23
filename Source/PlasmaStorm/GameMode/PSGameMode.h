@@ -37,6 +37,8 @@ public:
 	float CooldownTime = 5.f;
 	float LevelStartingTime = 0.f;
 
+	bool bTeamsMatch = false;
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void OnMatchStateSet() override;

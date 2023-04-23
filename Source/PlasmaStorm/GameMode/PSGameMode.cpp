@@ -65,10 +65,9 @@ void APSGameMode::OnMatchStateSet()
 		APSPlayerController* PSPlayer = Cast<APSPlayerController>(*It);
 		if (PSPlayer)
 		{
-			PSPlayer->OnMatchStateSet(MatchState);
+			PSPlayer->OnMatchStateSet(MatchState, bTeamsMatch);
 		}
 	}
-
 }
 
 void APSGameMode::PlayerEliminated(class APSCharacter* ElimmedCharacter, class APSPlayerController* VictimController, class APSPlayerController* AttackerController)

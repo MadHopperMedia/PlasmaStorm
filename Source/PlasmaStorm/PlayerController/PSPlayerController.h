@@ -36,12 +36,17 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	virtual float GetServerTime();
 	virtual void ReceivedPlayer() override;
-	void OnMatchStateSet(FName State);
-	void HandleMatchHasStarted();
+	void OnMatchStateSet(FName State, bool bTeamsMatch = false);
+	void HandleMatchHasStarted(bool bTeamsMatch = false);
 	void HandleCooldown();
 	UPROPERTY()
 	class APSCharacter* PSCharacter;
 	float SingleTripTime = 0.f;
+
+	void HideTeamScores();
+	void InitTeamScores();
+	void SetHUDRedTeamScore(int32 RedScore);
+	void SetHUDBlueTeamScore(int32 BlueScore);
 
 	FHighPingDelegate HighPingDelegate;
 
@@ -74,7 +79,7 @@ protected:
 	void ServerCheckMatchState();
 
 	UFUNCTION(Client, Reliable)
-	void ClientJoinMidGame(FName StateOfMatch, float WarmUp, float Match, float Cooldown, float StartingTime);
+	void ClientJoinMidGame(FName StateOfMatch, float WarmUp, float Match, float Cooldown, float StartingTime, bool bIsTeamsMatch);
 
 	
 
@@ -89,8 +94,11 @@ protected:
 
 	void ShowPauseMenu();
 
+	UPROPERTY(ReplicatedUsing = OnRep_ShowTeamScores)
+	bool bShowTeamScores = false;
 
-	
+	UFUNCTION()
+	void OnRep_ShowTeamScores();
 
 private:
 

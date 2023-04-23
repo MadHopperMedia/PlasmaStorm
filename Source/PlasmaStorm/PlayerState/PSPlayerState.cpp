@@ -11,6 +11,26 @@ void APSPlayerState::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& Out
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(APSPlayerState, Defeats);
+	DOREPLIFETIME(APSPlayerState, Team);
+}
+
+void APSPlayerState::SetTeam(ETeam TeamToSet)
+{
+	Team = TeamToSet;
+	APSCharacter* PSCharacter = Cast<APSCharacter>(GetPawn());
+	if (PSCharacter)
+	{
+		PSCharacter->SetTeamColor(Team);		
+	}
+}
+
+void APSPlayerState::OnRep_Team()
+{
+	APSCharacter* PSCharacter = Cast<APSCharacter>(GetPawn());
+	if (PSCharacter)
+	{
+		PSCharacter->SetTeamColor(Team);
+	}
 }
 
 void APSPlayerState::AddToScore(float ScoreAmount)
