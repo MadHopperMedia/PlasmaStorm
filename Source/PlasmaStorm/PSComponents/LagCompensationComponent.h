@@ -94,7 +94,7 @@ public:
 		class APSCharacter* HitCharacter,
 		const FVector_NetQuantize& TraceStart,
 		const FVector_NetQuantize100& InitialVelocity,
-		float HitTime);
+		float HitTime, AWeapon* DamageCauser);
 
 	/**
 	* Shotgun
@@ -117,7 +117,8 @@ public:
 		void ProjectileServerScoreRequest(APSCharacter* HitCharacter,
 			const FVector_NetQuantize& TraceStart,
 			const FVector_NetQuantize100& InitialVelocity,
-			float HitTime);
+			float HitTime,
+			AWeapon* DamageCauser);
 		
 
 	UFUNCTION(Server, Reliable)

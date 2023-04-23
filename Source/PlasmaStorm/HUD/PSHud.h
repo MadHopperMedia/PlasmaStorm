@@ -47,6 +47,7 @@ public:
 	class UAnnouncement* Announcement;
 
 	void AddAnnouncement();
+	void AddElimAnnouncment(FString Attacker, FString Victim);
 	void AddCharacterOverlay();
 
 protected:
@@ -55,7 +56,8 @@ protected:
 	
 
 private:
-
+	UPROPERTY()
+	class APlayerController* OwningPlayer;
 	FHUDPackage HUDPackage;
 
 	float CrosshairsOffset;
@@ -64,7 +66,17 @@ private:
 	UPROPERTY(EditAnywhere)
 	float CrosshairSpreadMax = 16.f;
 	
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<class UElimAnnouncment> ElimAnnouncmentClass;
 
+	UPROPERTY(EditAnywhere)
+	float ElimAnnouncmentTime = 3.f;
+
+	UFUNCTION()
+	void ElimAnnouncmentTimerFinished(UElimAnnouncment* MsgToRemove);
+
+	UPROPERTY()
+	TArray<UElimAnnouncment*> ElimMessages;
 public: 
 	FORCEINLINE void SetHUDPackage(const FHUDPackage& Package) { HUDPackage = Package; }
 	FORCEINLINE void SetCrosshairsOffset( float Offset) { CrosshairsOffset = Offset; }

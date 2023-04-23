@@ -81,6 +81,8 @@ public:
 	UPROPERTY(EditAnywhere, Category = "WeaponScatter")
 	bool bUseScatter = false;
 	FVector TraceEndWithScatter(const FVector& HitTarget);
+	bool bCanRecharge = false;
+	float AddedAmmo = 0;
 protected:
 	
 	virtual void BeginPlay() override;
@@ -128,6 +130,9 @@ protected:
 	UPROPERTY(EditAnywhere)
 	float Damage = 20.f;
 
+	UPROPERTY(EditAnywhere)
+	float HeadShotDamage = 40.f;
+
 	UPROPERTY(Replicated, EditAnywhere)
 	bool bUseServerSideRewind = false;
 
@@ -137,6 +142,15 @@ protected:
 	class APSPlayerController* PSOwnerController;
 	UFUNCTION()
 	void OnPingTooHigh(bool bPingTooHigh);
+
+	UPROPERTY(EditAnywhere)
+	bool bIsMountedWeapon = false;
+	
+	UPROPERTY(EditAnywhere)
+	float RechargeTime = 1;
+
+	UFUNCTION()
+	void RecharageAmmo(float DeltaTime);
 
 private:
 
@@ -200,7 +214,9 @@ public:
 	FORCEINLINE float GetWeaponRange() const { return WeaponRange; }
 	bool IsEmpty();
 	FORCEINLINE EWeaponType GetWeaponType() const { return WeaponType; }
+	UFUNCTION(BlueprintCallable)
 	FORCEINLINE int32 GetAmmo() const { return Ammo; }
+	UFUNCTION(BlueprintCallable)
 	FORCEINLINE int32 GetMagCapacity() const { return MagCapacity; }
 	FORCEINLINE float GetWeaponRecoil() const { return Recoil; }
 	FORCEINLINE float GetTraceRadious() const { return TraceRadious; }
@@ -209,4 +225,5 @@ public:
 	UFUNCTION(BlueprintCallable)
 	FORCEINLINE FName GetWeaponName() const { return WeaponName; }
 	FORCEINLINE float GetDamage() const { return Damage; }
+	FORCEINLINE float GetHeadshotDamage() const { return HeadShotDamage; }
 };

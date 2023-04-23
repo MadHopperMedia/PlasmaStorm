@@ -16,6 +16,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundCue.h"
 #include "Components/Image.h"
+#include "PlasmaStorm/HUD/PauseMenu.h"
 
 
 
@@ -27,6 +28,16 @@ void APSPlayerController::BeginPlay()
 	PSHUD = Cast<APSHud>(GetHUD());
 	ServerCheckMatchState();
 	
+}
+
+void APSPlayerController::SetupInputComponent()
+{
+	Super::SetupInputComponent();
+
+	if (InputComponent == nullptr) return;
+
+	InputComponent->BindAction("Quit", IE_Pressed, this, &APSPlayerController::ShowPauseMenu);
+
 }
 
 void APSPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -81,6 +92,28 @@ void APSPlayerController::ServerReportPingStatus_Implementation(bool bHighPing)
 	//HighPingDelegate.Broadcast(bHighPing);
 }
 
+void APSPlayerController::ShowPauseMenu()
+{
+	if (PauseMenuWidget == nullptr) return;
+
+	if (PauseMenu == nullptr)
+	{
+		PauseMenu = CreateWidget<UPauseMenu>(this, PauseMenuWidget);
+	}
+	if (PauseMenu)
+	{
+		bPauseMenuOpen = !bPauseMenuOpen;
+		if (bPauseMenuOpen)
+		{
+			PauseMenu->MenuSetup();
+		}
+		else
+		{
+			PauseMenu->MenuTearDown();
+		}
+	}
+
+}
 
 void APSPlayerController::PollInit()
 {
@@ -546,6 +579,44 @@ void APSPlayerController::StopHighPingWarning()
 		{
 			PSHUD->CharacterOverlay->StopAnimation(PSHUD->CharacterOverlay->HighPingAnimation);
 		}		
+	}
+}
+
+void APSPlayerController::BroadcastElim(APlayerState* Attacker, APlayerState* Victim)
+{
+	ClientElimAnnouncment(Attacker, Victim);
+}
+
+void APSPlayerController::ClientElimAnnouncment_Implementation(APlayerState* Attacker, APlayerState* Victim)
+{
+	APlayerState* Self = GetPlayerState<APlayerState>();
+	if (Attacker && Victim && Self)
+	{
+		PSHUD = PSHUD == nullptr ? Cast<APSHud>(GetHUD()) : PSHUD;
+		if (PSHUD)
+		{
+			if (Attacker == Self && Victim != Self)
+			{
+				PSHUD->AddElimAnnouncment("You", Victim->GetPlayerName());
+				return;
+			}
+			if (Victim == Self && Attacker != Self)
+			{
+				PSHUD->AddElimAnnouncment(Attacker->GetPlayerName(), "You");
+				return;
+			}
+			if (Attacker == Victim && Attacker == Self)
+			{
+				PSHUD->AddElimAnnouncment("You", "Yourself");
+				return;
+			}
+			if (Attacker == Victim && Attacker != Self)
+			{
+				PSHUD->AddElimAnnouncment(Attacker->GetPlayerName(), "Themselves");
+				return;
+			}
+			PSHUD->AddElimAnnouncment(Attacker->GetPlayerName(), Victim->GetPlayerName());			
+		}
 	}
 }
 

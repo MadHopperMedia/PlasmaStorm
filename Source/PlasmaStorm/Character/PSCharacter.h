@@ -11,6 +11,8 @@
 #include "PlasmaStorm/Interfaces/InteractWithCrosshairsInterface.h"
 #include "PSCharacter.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnLeftGame);
+
 /**
  * 
  */
@@ -38,10 +40,12 @@ public:
 	void PlaySwapMontage();
 	UFUNCTION(Client, Unreliable)
 	void PlayKillSound();
-	void Elim();
+	void Elim(bool bPlayerLeftGame);
 	virtual void Destroyed() override;
 	UFUNCTION(NetMulticast, Reliable)
-	void MulticastElim();
+	void MulticastElim(bool bPlayerLeftGame);
+	UFUNCTION(Server, Reliable)
+	void ServerLeaveGame();
 	void PlayerPitch(float Val);
 	
 	UFUNCTION(NetMulticast, Reliable)
@@ -114,6 +118,7 @@ public:
 
 	bool bFinishedSwapping = true;
 
+	FOnLeftGame OnLeftGame;
 protected:
 
 	void ForwardMovement(float Val);
@@ -286,6 +291,12 @@ private:
 	float ElimDelay = 3.f;
 	void ElimTimerFinished();
 
+	bool bLeftGame = false;
+
+	
+
+	
+
 	/**
 	* Dissolve effect
 	*/
@@ -392,6 +403,8 @@ public:
 	AWeapon* GetMountedWeapons();
 	bool IsLocallyReloading();
 	FORCEINLINE ULagCompensationComponent* GetLagCompensation() const { return LagCompensation; }
+	UFUNCTION(BlueprintCallable)
+	AWeapon* GetMountedWeapon();
 	
 	
 };

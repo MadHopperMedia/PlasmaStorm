@@ -18,6 +18,9 @@ class PLASMASTORM_API APSPlayerController : public APlayerController
 	GENERATED_BODY()
 
 public:
+
+	
+
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	void SetHUDHealth(float Health, float MaxHealth);
 	void SetHUDShield(float Shield, float MaxShield);
@@ -41,10 +44,14 @@ public:
 	float SingleTripTime = 0.f;
 
 	FHighPingDelegate HighPingDelegate;
+
+	void BroadcastElim(APlayerState* Attacker, APlayerState* Victim);
 	
 protected:
-
+	UFUNCTION(Client, Reliable)
+	void ClientElimAnnouncment(APlayerState* Attacker, APlayerState* Victim);
 	virtual void BeginPlay() override;
+	virtual void SetupInputComponent() override;
 	void SetHUDTime();
 	void PollInit();
 	/**
@@ -79,11 +86,30 @@ protected:
 	void HighPingWarning();
 	void StopHighPingWarning();
 	void CheckPing(float DeltaTime);
+
+	void ShowPauseMenu();
+
+
 	
 
 private:
+
+
 	UPROPERTY()
 	class APSHud* PSHUD;
+
+
+	/**
+	* Retun to main menu
+	*/
+	UPROPERTY(EditAnywhere, Category = HUD)
+	TSubclassOf<class UUserWidget> PauseMenuWidget;
+
+	UPROPERTY()
+	class UPauseMenu* PauseMenu;
+
+	bool bPauseMenuOpen = false;
+
 	UPROPERTY()
 	class APSGameMode* PSGameMode;
 	float MatchTime = 0.f;

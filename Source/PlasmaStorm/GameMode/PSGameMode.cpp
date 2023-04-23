@@ -95,7 +95,16 @@ void APSGameMode::PlayerEliminated(class APSCharacter* ElimmedCharacter, class A
 
 	if (ElimmedCharacter)
 	{
-		ElimmedCharacter->Elim();
+		ElimmedCharacter->Elim(false);
+	}
+
+	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+	{
+		APSPlayerController* PSPlayer = Cast<APSPlayerController>(*It);
+		if (PSPlayer && AttackerPlayerState && VictimPlayerState)
+		{
+			PSPlayer->BroadcastElim(AttackerPlayerState, VictimPlayerState);
+		}
 	}
 }
 
@@ -113,6 +122,20 @@ void APSGameMode::RequestRespawn(APawn* ElimmedCharacter, AController* ElimmedCo
 		int32 Selection = FMath::RandRange(0, PlayerStarts.Num() -1);
 		RestartPlayerAtPlayerStart(ElimmedController, PlayerStarts[Selection]);
 		
+	}	
+}
+
+void APSGameMode::PlayerLeftGame(APSPlayerState* PlayerLeaving)
+{
+	if (PlayerLeaving == nullptr) return;
+	APSGameState* PSGameState = GetGameState<APSGameState>();
+	if (PSGameState && PSGameState->TopScoringPlayers.Contains(PlayerLeaving))
+	{
+		PSGameState->TopScoringPlayers.Remove(PlayerLeaving);
 	}
-	
+	APSCharacter* CharacterLeaving = Cast<APSCharacter>(PlayerLeaving->GetPawn());
+	if (CharacterLeaving)
+	{
+		CharacterLeaving->Elim(true);
+	}
 }

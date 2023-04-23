@@ -244,6 +244,17 @@ void APSCharacter::Tick(float DeltaTime)
 	{
 		CTFComponent->bCanFly = true;
 	}
+	if (Combat && Combat->MountedWeapon)
+	{
+		if (!bIsGrounded)
+		{
+			Combat->MountedWeapon->bCanRecharge = false;
+		}
+		else
+		{
+			Combat->MountedWeapon->bCanRecharge = true;
+		}
+	}
 }
 
 void APSCharacter::PollInit()
@@ -480,6 +491,15 @@ void APSCharacter::ServerSwapWeaponsButtonPressed_Implementation()
 	{
 		Combat->SwapWeapons();
 	}
+}
+
+AWeapon* APSCharacter::GetMountedWeapon()
+{
+	if (Combat && Combat->MountedWeapon)
+	{
+		return Combat->MountedWeapon;
+	}
+	return nullptr;
 }
 
 bool APSCharacter::IsWeaponEquipped()
@@ -900,8 +920,7 @@ void APSCharacter::RecieveDamage(AActor* DamagedActor, float Damage, const UDama
 			DamageToHealth = 0.f;
 		}
 		else
-		{
-			
+		{			
 			DamageToHealth = FMath::Clamp(DamageToHealth - Shield, 0, Damage);
 			Shield = 0.f;
 		}
@@ -943,7 +962,7 @@ void APSCharacter::HitTimerFinished()
 	Buff->ReplenishShield(100, 5);
 }
 
-void APSCharacter::Elim()
+void APSCharacter::Elim(bool bPlayerLeftGame)
 {
 	if (Combat )
 	{
@@ -961,13 +980,8 @@ void APSCharacter::Elim()
 		}
 		
 	}
-	MulticastElim();
-	GetWorldTimerManager().SetTimer(
-		ElimTimer,
-		this,
-		&APSCharacter::ElimTimerFinished,
-		ElimDelay
-	);	
+	MulticastElim(bPlayerLeftGame);
+	
 }
 
 void APSCharacter::PlayKillSound_Implementation()
@@ -989,15 +1003,29 @@ void APSCharacter::Destroyed()
 void APSCharacter::ElimTimerFinished()
 {
 	APSGameMode* PSGameMode = GetWorld()->GetAuthGameMode<APSGameMode>();
-	if (PSGameMode)
+	if (PSGameMode && !bLeftGame)
 	{
 		PSGameMode->RequestRespawn(this, Controller);
 	}
+	if (bLeftGame && IsLocallyControlled())
+	{
+		OnLeftGame.Broadcast();
+	}
 }
 
-void APSCharacter::MulticastElim_Implementation()
+void APSCharacter::ServerLeaveGame_Implementation()
+{
+	APSGameMode* PSGameMode = GetWorld()->GetAuthGameMode<APSGameMode>();
+	PSPlayerState = PSPlayerState == nullptr ? GetPlayerState<APSPlayerState>() : PSPlayerState;
+	if (PSGameMode && PSPlayerState)
+	{
+		PSGameMode->PlayerLeftGame(PSPlayerState);
+	}
+}
+
+void APSCharacter::MulticastElim_Implementation(bool bPlayerLeftGame)
 {		
-	
+	bLeftGame = bPlayerLeftGame;
 	if (DissolveMaterialInstance)
 	{		
 		DynamicDissolveMaterialInstance = UMaterialInstanceDynamic::Create(DissolveMaterialInstance, this);
@@ -1023,7 +1051,12 @@ void APSCharacter::MulticastElim_Implementation()
 	bElimmed = true;
 	FireButtonReleased();
 	SetCanMove(false);
-	SetCollisionsAfterElimmed();
+	if (!bLeftGame)
+	{
+		SetCollisionsAfterElimmed();
+		GetMesh()->AddImpulse(Impulse);
+	}
+	
 	if (PSPlayerController)
 	{
 		DisableInput(PSPlayerController);
@@ -1033,7 +1066,13 @@ void APSCharacter::MulticastElim_Implementation()
 	{
 		ShowSniperScopeWidget(false);
 	}
-	GetMesh()->AddImpulse(Impulse);
+	GetWorldTimerManager().SetTimer(
+		ElimTimer,
+		this,
+		&APSCharacter::ElimTimerFinished,
+		ElimDelay
+	);
+	
 	
 }
 

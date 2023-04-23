@@ -42,9 +42,11 @@ void AProjectileWeapon::Fire(const FVector& HitTarget)
 			{
 				if (OwnerPawn->IsLocallyControlled() && HasAuthority())
 				{
+					const float DamageToCause = FireHit.BoneName.ToString() == FString("head") ? HeadShotDamage : Damage;
+
 					UGameplayStatics::ApplyDamage(
 						PSCharacter,
-						Damage,
+						DamageToCause,
 						InstigatorController,
 						this,
 						UDamageType::StaticClass()
@@ -145,11 +147,14 @@ void AProjectileWeapon::SpawnProjectile(const FVector& HitTarget)
 					SpawnedProjectile = World->SpawnActor<AProjectile>(ProjectileClass, SocketTransform.GetLocation(), TargetRotation, SpawnParams);
 					SpawnedProjectile->bUseServerSideRewind = false;
 					SpawnedProjectile->Damage = Damage;
+					SpawnedProjectile->HeadShotDamage = HeadShotDamage;
+					SpawnedProjectile->OwningWeapon = this;
 				}
 				else // server, not locally controlled - spawn none replicated projectile
 				{
 					SpawnedProjectile = World->SpawnActor<AProjectile>(ServerSideRewindProjectileClass, SocketTransform.GetLocation(), TargetRotation, SpawnParams);
 					SpawnedProjectile->bUseServerSideRewind = true;
+					SpawnedProjectile->OwningWeapon = this;
 				}
 			}
 			else // Client, using SSR
@@ -158,14 +163,16 @@ void AProjectileWeapon::SpawnProjectile(const FVector& HitTarget)
 				{
 					SpawnedProjectile = World->SpawnActor<AProjectile>(ServerSideRewindProjectileClass, SocketTransform.GetLocation(), TargetRotation, SpawnParams);
 					SpawnedProjectile->bUseServerSideRewind = true;
+					SpawnedProjectile->OwningWeapon = this;
 					SpawnedProjectile->TraceStart = SocketTransform.GetLocation();
 					SpawnedProjectile->InitialVelocity = SpawnedProjectile->GetActorForwardVector() * SpawnedProjectile->InitialSpeed;
-					SpawnedProjectile->Damage = Damage;
+				
 				}
 				else // Client, none locally controlled - spawn none replicated projectile not useing SSR
 				{
 					SpawnedProjectile = World->SpawnActor<AProjectile>(ServerSideRewindProjectileClass, SocketTransform.GetLocation(), TargetRotation, SpawnParams);
 					SpawnedProjectile->bUseServerSideRewind = false;
+					SpawnedProjectile->OwningWeapon = this;
 				}
 			}
 		}
@@ -175,7 +182,9 @@ void AProjectileWeapon::SpawnProjectile(const FVector& HitTarget)
 			{
 				SpawnedProjectile = World->SpawnActor<AProjectile>(ProjectileClass, SocketTransform.GetLocation(), TargetRotation, SpawnParams);
 				SpawnedProjectile->bUseServerSideRewind = false;
+				SpawnedProjectile->OwningWeapon = this;
 				SpawnedProjectile->Damage = Damage;
+				SpawnedProjectile->HeadShotDamage = HeadShotDamage;
 			}
 		}		
 	}

@@ -64,14 +64,16 @@ void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 	
-	if (Character && Character->IsLocallyControlled())
-	{
-		
-		TraceUnderCrosshairs(DeltaTime);
-		SetHUDCrosshairs(DeltaTime);
-		InterpFOV(DeltaTime);
-		
+	if (Character)
+	{		
+		if (Character->IsLocallyControlled())
+		{
+			TraceUnderCrosshairs(DeltaTime);
+			SetHUDCrosshairs(DeltaTime);
+			InterpFOV(DeltaTime);
+		}		
 	}
+	
 	
 }
 
@@ -821,17 +823,16 @@ void UCombatComponent::LocalFire(const FVector_NetQuantize& TraceHitTarget)
 	else
 	{
 		Character->SetTargetCharacter(nullptr);
-	}
-
-	
+	}	
 }
 
 void UCombatComponent::ShotgunLocalFire(const TArray<FVector_NetQuantize>& TraceHitTargets)
 {
 	AShotgun* Shotgun = Cast<AShotgun>(EquippedWeapon);
-	if (Shotgun == nullptr || Character == nullptr) return;
+	if (Character == nullptr || Shotgun == nullptr) return;
 	if (CombatState == ECombatState::ECS_Reloading || CombatState == ECombatState::ECS_Unoccupied)
 	{
+		bLocallyReloading = false;
 		Character->PlayFireMontage(bAiming);
 		Shotgun->FireShotgun(TraceHitTargets);
 		CombatState = ECombatState::ECS_Unoccupied;

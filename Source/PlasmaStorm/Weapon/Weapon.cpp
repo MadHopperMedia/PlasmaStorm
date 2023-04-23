@@ -37,6 +37,8 @@ AWeapon::AWeapon()
 	
 	PickupWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("PickupWidget"));
 	PickupWidget->SetupAttachment(RootComponent);
+
+	
 }
 
  void AWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -59,12 +61,13 @@ void AWeapon::BeginPlay()
 	AreaSphere->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
 	AreaSphere->OnComponentBeginOverlap.AddDynamic(this, &AWeapon::OnSphereOverlap);
 	AreaSphere->OnComponentEndOverlap.AddDynamic(this, &AWeapon::OnSphereEndOverlap);
-	
+	AddedAmmo = Ammo;
 }
 
 void AWeapon::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	RecharageAmmo(DeltaTime);
 }
 
 void AWeapon::SetWeaponState(EWeaponState State)
@@ -265,8 +268,28 @@ void AWeapon::DroppedTimerFinished()
 	Destroy();
 }
 
+void AWeapon::RecharageAmmo(float DeltaTime)
+{	
+	PSOwnerCharacter = PSOwnerCharacter == nullptr ? Cast<APSCharacter>(GetOwner()) : PSOwnerCharacter;
+	
+	if (bIsMountedWeapon && bCanRecharge && Ammo < MagCapacity)
+	{	
+		if (PSOwnerCharacter)
+		{
+			AddedAmmo = AddedAmmo + 1 * DeltaTime;
+			if (AddedAmmo >= RechargeTime)
+			{
+				//AddAmmo(1);
+				Ammo = Ammo + 1;
+				AddedAmmo = 0;
+			}
+		}
+	}
+}
+
 void AWeapon::SetHUDAmmo()
 {
+	if (bCanRecharge) return;
 	PSOwnerCharacter = PSOwnerCharacter == nullptr ? Cast<APSCharacter>(GetOwner()) : PSOwnerCharacter;
 	if (PSOwnerCharacter)
 	{

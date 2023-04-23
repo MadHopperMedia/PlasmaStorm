@@ -27,7 +27,7 @@ void AShotgun::FireShotgun(const TArray<FVector_NetQuantize>& HitTargets)
 
 		// Maps hit character to number of times hit
 		TMap<APSCharacter*, uint32> HitMap;
-
+		TMap<APSCharacter*, uint32> HeadShotHitMap;
 		for (FVector_NetQuantize HitTarget : HitTargets)
 		{
 			FHitResult FireHit;
@@ -36,14 +36,18 @@ void AShotgun::FireShotgun(const TArray<FVector_NetQuantize>& HitTargets)
 			APSCharacter* PSCharacter = Cast<APSCharacter>(FireHit.GetActor());
 			if (PSCharacter)
 			{
-				if (HitMap.Contains(PSCharacter))
+				const bool bHeadShot = FireHit.BoneName.ToString() == FString("head");
+				if (bHeadShot)
 				{
-					HitMap[PSCharacter]++;
+					if (HeadShotHitMap.Contains(PSCharacter)) HeadShotHitMap[PSCharacter]++;
+					else HeadShotHitMap.Emplace(PSCharacter, 1);
 				}
 				else
 				{
-					HitMap.Emplace(PSCharacter, 1);
-				}
+					if (HitMap.Contains(PSCharacter)) HitMap[PSCharacter]++;
+					else HitMap.Emplace(PSCharacter, 1);
+				}				
+				
 				if (ImpactParticles)
 				{
 					UGameplayStatics::SpawnEmitterAtLocation(
@@ -66,24 +70,29 @@ void AShotgun::FireShotgun(const TArray<FVector_NetQuantize>& HitTargets)
 			}
 		}
 		TArray<APSCharacter*> HitCharacters;
+
+		TMap<APSCharacter*, float> DamageMap;
 		for (auto HitPair : HitMap)
 		{
-			if (HitPair.Key && InstigatorController)
+			if (HitPair.Key)
 			{
-				bool bCauseAuthDamage = !bUseServerSideRewind || OwnerPawn->IsLocallyControlled();
-				if (HasAuthority() && bCauseAuthDamage)
-				{
-					UGameplayStatics::ApplyDamage(
-						HitPair.Key, // Character that was hit 
-						Damage * HitPair.Value, // Multiply Damage by number of times hit
-						InstigatorController,
-						this,
-						UDamageType::StaticClass()
-					);
-				}
-				HitCharacters.Add(HitPair.Key);
+				DamageMap.Emplace(HitPair.Key, HitPair.Value * Damage);
+				
+				HitCharacters.AddUnique(HitPair.Key);
 			}
 		}
+		for (auto HeadShotHitPair : HeadShotHitMap)
+		{
+			if (HeadShotHitPair.Key)
+			{
+				if (DamageMap.Contains(HeadShotHitPair.Key)) DamageMap[HeadShotHitPair.Key] += HeadShotHitPair.Value * HeadShotDamage;
+				else DamageMap.Emplace(HeadShotHitPair.Key, HeadShotHitPair.Value * HeadShotDamage);
+
+				HitCharacters.AddUnique(HeadShotHitPair.Key);
+			}
+		}
+
+		bool bCauseAuthDamage = !bUseServerSideRewind || OwnerPawn->IsLocallyControlled();
 		if (!HasAuthority() && bUseServerSideRewind)
 		{
 			PSOwnerCharacter = PSOwnerCharacter == nullptr ? Cast<APSCharacter>(OwnerPawn) : PSOwnerCharacter;
@@ -98,6 +107,23 @@ void AShotgun::FireShotgun(const TArray<FVector_NetQuantize>& HitTargets)
 				);
 			}
 		}
+
+		for (auto DamagePair : DamageMap)
+		{
+			if (DamagePair.Key && InstigatorController)
+			{
+				if (HasAuthority() && bCauseAuthDamage)
+				{
+					UGameplayStatics::ApplyDamage(
+						DamagePair.Key, // Character that was hit 
+						DamagePair.Value, // Damage Calculated in the two for loops above
+						InstigatorController,
+						this,
+						UDamageType::StaticClass()
+					);
+				}
+			}
+		}		
 	}
 }
 
@@ -111,7 +137,7 @@ void AShotgun::ShotgunTraceEndWithScatter(const FVector& HitTarget, TArray<FVect
 	float ScatterRadious = SphereRadious;
 	if (bIsAiming)
 	{
-		ScatterRadious = SphereRadious / 2;
+		ScatterRadious = SphereRadious / 1;
 	}
 	const FVector ToTargetNormalized = (HitTarget - TraceStart).GetSafeNormal();
 	const FVector SphereCenter = TraceStart + ToTargetNormalized * DistanceToSphere;
