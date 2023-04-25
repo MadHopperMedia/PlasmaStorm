@@ -177,6 +177,9 @@ private:
 	UFUNCTION(Server, Reliable)
 	void ServerSwapWeaponsButtonPressed();
 
+	UFUNCTION(Server, Reliable)
+	void ServerDropFlag();
+
 
 	FTimerHandle EquipTimer;
 
@@ -418,6 +421,7 @@ public:
 	FORCEINLINE ULagCompensationComponent* GetLagCompensation() const { return LagCompensation; }
 	UFUNCTION(BlueprintCallable)
 	AWeapon* GetMountedWeapon();
+	FORCEINLINE bool IsHoldingThFlag() const;
 	
 	
 };

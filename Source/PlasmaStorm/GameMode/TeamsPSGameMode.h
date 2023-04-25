@@ -17,6 +17,7 @@ public:
 	ATeamsPSGameMode();
 	virtual void PostLogin(APlayerController* NewPlayer) override;
 	virtual void Logout(AController* Exiting) override;
+	virtual void PlayerEliminated(class APSCharacter* ElimmedCharacter, class APSPlayerController* VictimController, class APSPlayerController* AttackerController) override;
 
 protected:
 	virtual void HandleMatchHasStarted() override;

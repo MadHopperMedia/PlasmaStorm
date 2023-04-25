@@ -4,6 +4,7 @@
 #include "PSGameState.h"
 #include "Net/UnrealNetwork.h"
 #include "PlasmaStorm/PlayerState/PSPlayerState.h"
+#include "PlasmaStorm//PlayerController/PSPlayerController.h"
 
 void APSGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
@@ -37,20 +38,40 @@ void APSGameState::UpdateTopScore(class APSPlayerState* ScoringPlayer)
 void APSGameState::RedTeamScores()
 {
 	++RedTeamScore;
+
+	APSPlayerController* PSPlayer = Cast<APSPlayerController>(GetWorld()->GetFirstPlayerController());
+	if (PSPlayer)
+	{
+		PSPlayer->SetHUDRedTeamScore(RedTeamScore);
+	}
 }
 
 void APSGameState::BlueTeamScores()
 {
 	++BlueTeamScore;
+
+	APSPlayerController* PSPlayer = Cast<APSPlayerController>(GetWorld()->GetFirstPlayerController());
+	if (PSPlayer)
+	{
+		PSPlayer->SetHUDBlueTeamScore(BlueTeamScore);
+	}
 }
 
 
 void APSGameState::OnRep_RedTeamScore()
 {
-
+	APSPlayerController* PSPlayer = Cast<APSPlayerController>(GetWorld()->GetFirstPlayerController());
+	if (PSPlayer)
+	{
+		PSPlayer->SetHUDRedTeamScore(RedTeamScore);
+	}
 }
 
 void APSGameState::OnRep_BlueTeamScore()
 {
-
+	APSPlayerController* PSPlayer = Cast<APSPlayerController>(GetWorld()->GetFirstPlayerController());
+	if (PSPlayer)
+	{
+		PSPlayer->SetHUDBlueTeamScore(BlueTeamScore);
+	}
 }

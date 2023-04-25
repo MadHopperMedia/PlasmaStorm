@@ -4,6 +4,7 @@
 #include "TeamsPSGameMode.h"
 #include "PlasmaStorm/GameState/PSGameState.h"
 #include "PlasmaStorm/PlayerState/PSPlayerState.h"
+#include "PlasmaStorm//PlayerController/PSPlayerController.h"
 #include "Kismet/Gameplaystatics.h"
 
 
@@ -33,6 +34,27 @@ void ATeamsPSGameMode::PostLogin(APlayerController* NewPlayer)
 			}
 		}
 	}
+}
+
+void ATeamsPSGameMode::PlayerEliminated(class APSCharacter* ElimmedCharacter, class APSPlayerController* VictimController, class APSPlayerController* AttackerController)
+{
+	Super::PlayerEliminated(ElimmedCharacter, VictimController, AttackerController);
+
+	APSGameState* PSGameState = Cast<APSGameState>(UGameplayStatics::GetGameState(this));
+	APSPlayerState* AttackerPlayerState = AttackerController ? Cast<APSPlayerState>(AttackerController->PlayerState) : nullptr;
+	APSPlayerState* VictimPlayerState = VictimController ? Cast<APSPlayerState>(VictimController->PlayerState) : nullptr;
+	if (PSGameState && AttackerPlayerState)
+	{
+		if (AttackerPlayerState->GetTeam() == ETeam::ET_BlueTeam && VictimPlayerState->GetTeam() != ETeam::ET_BlueTeam)
+		{
+			PSGameState->BlueTeamScores();
+		}
+		if (AttackerPlayerState->GetTeam() == ETeam::ET_RedTeam && VictimPlayerState->GetTeam() != ETeam::ET_RedTeam)
+		{
+			PSGameState->RedTeamScores();
+		}
+	}
+
 }
 
 void ATeamsPSGameMode::Logout(AController* Exiting)
@@ -81,4 +103,6 @@ void ATeamsPSGameMode::HandleMatchHasStarted()
 		}		
 	}
 }
+
+
 

@@ -255,6 +255,14 @@ void APSCharacter::Tick(float DeltaTime)
 			Combat->MountedWeapon->bCanRecharge = true;
 		}
 	}
+	if (Combat && Combat->EquippedWeapon && IsHoldingThFlag())
+	{
+		Combat->EquippedWeapon->SetActorHiddenInGame(true);
+	}
+	else if (Combat && Combat->EquippedWeapon)
+	{
+		Combat->EquippedWeapon->SetActorHiddenInGame(false);
+	}
 }
 
 void APSCharacter::PollInit()
@@ -315,12 +323,25 @@ void APSCharacter::HideCharacterIfCharacterClose()
 		{
 			Combat->MountedWeapon->GetWeaponMesh()->bOwnerNoSee = false;
 		}
+		
 	}
+	
 }
 
 void APSCharacter::ForwardMovement(float Val)
 {
-	
+	if (IsHoldingThFlag())
+	{
+		if (GetIsFlying())
+		{
+			Val = Val * .1f;
+		}
+		else
+		{
+			Val = Val * .5f;
+		}
+		
+	}
 	MoveForward(Val);
 }
 
@@ -411,6 +432,7 @@ void APSCharacter::PlayerRoll(float Val)
 
 void APSCharacter::PlayerCrouch()
 {
+	if (IsHoldingThFlag()) return;
 	Crouch();
 }
 
@@ -490,7 +512,7 @@ void APSCharacter::OnRep_OverlappingWeapon(AWeapon* LastWeapon)
 
 void APSCharacter::SwitchWeaponButtonPressed()
 {
-	if (bIsFlying || Combat == nullptr) return;
+	if (bIsFlying || Combat == nullptr || IsHoldingThFlag()) return;
 		ServerSwapWeaponsButtonPressed();
 		if (!HasAuthority() && Combat->CombatState == ECombatState::ECS_Unoccupied)
 		{
@@ -540,7 +562,7 @@ AWeapon* APSCharacter::GetEquippedWeapon()
 
 void APSCharacter::AimButtonPressed()
 {
-	if (Combat && !bIsFlying)
+	if (Combat && !bIsFlying && !IsHoldingThFlag())
 	{
 		Combat->SetAiming(true);
 		Combat->PlayEquippedWeaponZoomSound();
@@ -681,6 +703,7 @@ void APSCharacter::OnRep_AoPitch()
 
 void APSCharacter::BoostButtonPressed()
 {
+	if (IsHoldingThFlag()) return;
 	if (bToggleBoost && bIsBoosting) 
 	{
 		StopBoosting();
@@ -755,11 +778,31 @@ void APSCharacter::SpawnDefaultWeapon()
 
 void APSCharacter::FireButtonPressed()
 {
-	
-	if (bIsBoosting || bIsFlying && !bTransitioningfromFlight) return;
+	if (Combat && IsHoldingThFlag())
+	{
+		if (Combat->TheFlag)
+		{
+			Combat->DropFlag();
+			Combat->bHoldingTheFlag = false;
+		}		
+		ServerDropFlag();
+		
+		return;
+	}
+	if (bIsBoosting || bIsFlying && !bTransitioningfromFlight || IsHoldingThFlag()) return;
 	if (Combat && !bElimmed)
 	{
 		Combat->FireButtonPressed(true);
+	}
+}
+
+void APSCharacter::ServerDropFlag_Implementation()
+{
+	
+	if (Combat)
+	{
+		Combat->DropFlag();
+		Combat->bHoldingTheFlag = false;
 	}
 }
 
@@ -998,6 +1041,10 @@ void APSCharacter::Elim(bool bPlayerLeftGame)
 		{
 			Combat->MountedWeapon->Destroy();
 		}
+		if (Combat->TheFlag)
+		{
+			Combat->TheFlag->Dropped();
+		}
 		
 	}
 	MulticastElim(bPlayerLeftGame);
@@ -1151,6 +1198,7 @@ void APSCharacter::ReloadButtonPressed()
 {
 	if (Combat && Combat->CombatState == ECombatState::ECS_Unoccupied && !bIsFlying)
 	{
+		if (Combat->bHoldingTheFlag) return;
 		if (OverlappingWeapon)
 		{
 			EquippingWeapon = true;
@@ -1172,7 +1220,7 @@ void APSCharacter::ReloadButtonPressed()
 void APSCharacter::EquipTimerFinished()
 {
 	if (Combat && Combat->CombatState == ECombatState::ECS_Unoccupied && !bIsFlying)
-	{
+	{		
 		EquippingWeapon = false;
 		ServerEquipButtonPressed(true);
 	}
@@ -1209,7 +1257,7 @@ ECombatState APSCharacter::GetCombatState() const
 
 void APSCharacter::GrenadeButtonPressed()
 {
-	if (Combat && !bIsFlying)
+	if (Combat && !bIsFlying && !IsHoldingThFlag())
 	{
 		Combat->ThrowGrenade();
 	}
@@ -1231,4 +1279,10 @@ bool APSCharacter::IsLocallyReloading()
 {
 	if (Combat == nullptr) return false;
 	return Combat->bLocallyReloading;
+}
+
+bool APSCharacter::IsHoldingThFlag() const
+{
+	if (Combat == nullptr) return false;
+	return Combat->bHoldingTheFlag;
 }

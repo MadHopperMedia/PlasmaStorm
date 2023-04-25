@@ -100,12 +100,13 @@ protected:
 	UFUNCTION()
 	void OnRep_ShowTeamScores();
 
-private:
+	FString GetInfoText(const TArray<class APSPlayerState*>& Players);
+	FString GetTeamsInfoText(class APSGameState* PSGameState);
 
+private:
 
 	UPROPERTY()
 	class APSHud* PSHUD;
-
 
 	/**
 	* Retun to main menu
@@ -153,6 +154,7 @@ private:
 	float HUDShield;
 	bool bInitializeShield = false;
 	float HUDMaxShield;
+	bool bInitializeTeamScores = false;
 
 	float HUDStamina;
 	bool bInitializeStamina = false;
