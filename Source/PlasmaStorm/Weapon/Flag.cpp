@@ -19,13 +19,13 @@ void AFlag::BeginPlay()
 	Super::BeginPlay();
 
 	OriginalTransform = GetActorTransform();
+	ReturnDelay = DroppedDelay;
 }
 
 void AFlag::Dropped()
 {
 	
-	SetWeaponState(EWeaponState::EWS_Dropped);
-	//GetWeaponMesh()->SetVisibility(true);
+	SetWeaponState(EWeaponState::EWS_Dropped);	
 	FDetachmentTransformRules DetachRules(EDetachmentRule::KeepWorld, true);
 	FlagMesh->DetachFromComponent(DetachRules);
 	SetOwner(nullptr);
@@ -35,18 +35,40 @@ void AFlag::Dropped()
 		DroppedTimer,
 		this,
 		&AFlag::DroppedTimerFinished,
-		DroppedDelay
+		ReturnDelay
 	);
 }
 
 void AFlag::DroppedTimerFinished()
+{	
+	ReturnFlag();
+}
+
+void AFlag::SetReturnTimer()
 {
-	SetActorTransform(OriginalTransform);
+	ReturnDelay = 0.001;
+
+}
+
+void AFlag::ReturnFlag()
+{
+	
 	FlagMesh->SetSimulatePhysics(false);
 	FlagMesh->SetEnableGravity(false);
 	FlagMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
 	FlagMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	SetActorTransform(OriginalTransform);
+	ReturnDelay = DroppedDelay;
+}
+
+void AFlag::ServerReturnFlag_Implementation()
+{
 	
+	FlagMesh->SetSimulatePhysics(false);
+	FlagMesh->SetEnableGravity(false);
+	FlagMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+	FlagMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	SetActorTransform(OriginalTransform);
 }
 
 void AFlag::OnEquipped()
@@ -54,9 +76,9 @@ void AFlag::OnEquipped()
 	
 	GetAreaSphere()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	FlagMesh->SetSimulatePhysics(false);
-	FlagMesh->SetEnableGravity(false);
-	//FlagMesh->SetVisibility(true);
-	FlagMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	FlagMesh->SetEnableGravity(false);	
+	FlagMesh->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	FlagMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
 	
 
 	GetWorldTimerManager().ClearTimer(DroppedTimer);
@@ -67,13 +89,10 @@ void AFlag::OnEquipped()
 void AFlag::OnDropped()
 {
 	
-	if (HasAuthority())
-	{
-		GetAreaSphere()->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-	}
+	
+	GetAreaSphere()->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	FlagMesh->SetSimulatePhysics(true);
 	FlagMesh->SetEnableGravity(true);
-	//FlagMesh->SetVisibility(true);
 	FlagMesh->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
 	FlagMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Block);
 	FlagMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Ignore);

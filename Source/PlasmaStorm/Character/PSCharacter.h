@@ -58,7 +58,7 @@ public:
 	void ShowSniperScopeWidget(bool bShowScope);
 
 	void SetTeamColor(ETeam Team);
-
+	void DropFlag();
 
 	UPROPERTY()
 		TMap<FName, class UBoxComponent*> HitCollisionBoxes;
@@ -148,6 +148,8 @@ protected:
 	void RecieveDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, class AController* InstigatorController, AActor* DamageCauser);
 	void PollInit();
 	void UpdateHUDAmmo();
+	void SetSpawnPoint();
+	void OnPlayerStateInitialized();
 	
 	
 private:
@@ -421,7 +423,7 @@ public:
 	FORCEINLINE ULagCompensationComponent* GetLagCompensation() const { return LagCompensation; }
 	UFUNCTION(BlueprintCallable)
 	AWeapon* GetMountedWeapon();
-	FORCEINLINE bool IsHoldingThFlag() const;
-	
-	
+	bool IsHoldingThFlag() const;
+	ETeam GetTeam();
+	void SetHoldingTheFalg(bool bHolding);
 };

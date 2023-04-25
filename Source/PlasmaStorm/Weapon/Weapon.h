@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "WeaponTypes.h"
+#include "PlasmaStorm/PSTypes/Team.h"
 #include "Weapon.generated.h"
 
 UENUM(BlueprintType)
@@ -198,13 +199,11 @@ private:
 	// incremented in spend round, decremented in client update ammo.
 	int32 Sequence = 0;
 
-	
-	
-
-
 	UPROPERTY(EditAnywhere)
 	EWeaponType WeaponType;
 	
+	UPROPERTY(EditAnywhere)
+	ETeam Team;
 	
 
 public:	
@@ -229,4 +228,5 @@ public:
 	FORCEINLINE FName GetWeaponName() const { return WeaponName; }
 	FORCEINLINE float GetDamage() const { return Damage; }
 	FORCEINLINE float GetHeadshotDamage() const { return HeadShotDamage; }
+	FORCEINLINE ETeam GetTeam() const { return Team; }
 };

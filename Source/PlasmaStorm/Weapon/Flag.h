@@ -17,7 +17,8 @@ public:
 
 		AFlag();
 		virtual void Dropped() override;
-
+		void ReturnFlag();
+		void SetReturnTimer();
 protected:
 	virtual void BeginPlay() override;
 	virtual void OnEquipped() override;
@@ -29,5 +30,10 @@ protected:
 private:
 		UPROPERTY(VisibleAnywhere)
 		UStaticMeshComponent* FlagMesh;
+		UFUNCTION(Server, Reliable)
+		void ServerReturnFlag();
+		float ReturnDelay = 30.f;
+
+
 
 };

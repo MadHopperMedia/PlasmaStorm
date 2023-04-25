@@ -194,8 +194,10 @@ void AWeapon::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* 
 	APSCharacter* PSCharacter = Cast<APSCharacter>(OtherActor);
 	if (PSCharacter)
 	{	
+		if (PSCharacter->IsHoldingThFlag()) return;
 		if (PSCharacter->GetEquippedWeapons() && PSCharacter->GetEquippedWeapons()->GetWeaponName() != WeaponName && PSCharacter->GetSecondaryWeapons() && PSCharacter->GetSecondaryWeapons()->GetWeaponName() != WeaponName && PSCharacter->GetMountedWeapons() && PSCharacter->GetMountedWeapons()->GetWeaponName() != WeaponName)
 		{
+			if (WeaponType == EWeaponType::EWT_Flag && PSCharacter->GetTeam() == Team) return;
 			PSCharacter->SetOverlappingWeapon(this);
 		}		
 	}
@@ -206,6 +208,8 @@ void AWeapon::OnSphereEndOverlap(UPrimitiveComponent* OverlappedComponent, AActo
 	APSCharacter* PSCharacter = Cast<APSCharacter>(OtherActor);
 	if (PSCharacter && GetOwner() == false)
 	{
+		if (PSCharacter->IsHoldingThFlag()) return;
+		if (WeaponType == EWeaponType::EWT_Flag && PSCharacter->GetTeam() == Team) return;
 		PSCharacter->SetOverlappingWeapon(nullptr);
 	}
 }

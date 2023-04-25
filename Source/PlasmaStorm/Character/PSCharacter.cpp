@@ -22,6 +22,7 @@
 #include "PlasmaStorm/Character/PSCharacterAnimInstance.h"
 #include "PlasmaStorm/PlayerController/PSPlayerController.h"
 #include "PlasmaStorm/PSComponents/LagCompensationComponent.h"
+#include "PlasmaStorm/PlayerStart/TeamPlayerStart.h"
 #include "Components/SceneComponent.h"
 #include "Components/BoxComponent.h"
 
@@ -259,7 +260,7 @@ void APSCharacter::Tick(float DeltaTime)
 	{
 		Combat->EquippedWeapon->SetActorHiddenInGame(true);
 	}
-	else if (Combat && Combat->EquippedWeapon)
+	else if (Combat && Combat->EquippedWeapon && !GetIsFlying())
 	{
 		Combat->EquippedWeapon->SetActorHiddenInGame(false);
 	}
@@ -290,10 +291,43 @@ void APSCharacter::PollInit()
 		PSPlayerState = GetPlayerState<APSPlayerState>();
 		if (PSPlayerState)
 		{
-			PSPlayerState->AddToScore(0.f);
-			PSPlayerState->AddToDefeats(0);
-			SetTeamColor(PSPlayerState->GetTeam());
+			OnPlayerStateInitialized();
 		}
+	}
+}
+
+void APSCharacter::OnPlayerStateInitialized()
+{
+	PSPlayerState->AddToScore(0.f);
+	PSPlayerState->AddToDefeats(0);
+	SetTeamColor(PSPlayerState->GetTeam());
+	SetSpawnPoint();
+}
+
+void APSCharacter::SetSpawnPoint()
+{
+	if (HasAuthority() && PSPlayerState->GetTeam() != ETeam::ET_NoTeam)
+	{
+		TArray<AActor*> PlayerStarts;
+		UGameplayStatics::GetAllActorsOfClass(this, ATeamPlayerStart::StaticClass(), PlayerStarts);
+		TArray<ATeamPlayerStart*> TeamPlayerStarts;
+		for (auto Start : PlayerStarts)
+		{
+			ATeamPlayerStart* TeamStart = Cast<ATeamPlayerStart>(Start);
+			if (TeamStart && TeamStart->Team == PSPlayerState->GetTeam())
+			{
+				TeamPlayerStarts.Add(TeamStart);
+			}
+		}
+		if (TeamPlayerStarts.Num() > 0)
+		{
+			ATeamPlayerStart* ChosenPlayerStart = TeamPlayerStarts[FMath::RandRange(0, TeamPlayerStarts.Num() - 1)];
+			SetActorLocationAndRotation(
+				ChosenPlayerStart->GetActorLocation(),
+				ChosenPlayerStart->GetActorRotation()
+			);
+		}
+		
 	}
 }
 
@@ -779,14 +813,8 @@ void APSCharacter::SpawnDefaultWeapon()
 void APSCharacter::FireButtonPressed()
 {
 	if (Combat && IsHoldingThFlag())
-	{
-		if (Combat->TheFlag)
-		{
-			Combat->DropFlag();
-			Combat->bHoldingTheFlag = false;
-		}		
-		ServerDropFlag();
-		
+	{		
+		DropFlag();
 		return;
 	}
 	if (bIsBoosting || bIsFlying && !bTransitioningfromFlight || IsHoldingThFlag()) return;
@@ -794,6 +822,15 @@ void APSCharacter::FireButtonPressed()
 	{
 		Combat->FireButtonPressed(true);
 	}
+}
+void APSCharacter::DropFlag()
+{
+	if (Combat->TheFlag)
+	{
+		Combat->DropFlag();
+		Combat->bHoldingTheFlag = false;
+	}
+	ServerDropFlag();
 }
 
 void APSCharacter::ServerDropFlag_Implementation()
@@ -1285,4 +1322,23 @@ bool APSCharacter::IsHoldingThFlag() const
 {
 	if (Combat == nullptr) return false;
 	return Combat->bHoldingTheFlag;
+}
+
+void APSCharacter::SetHoldingTheFalg(bool bHolding)
+{
+	if (Combat == nullptr) return;
+
+	Combat->bHoldingTheFlag = bHolding;
+}
+	
+	
+
+ETeam APSCharacter::GetTeam()
+{
+	PSPlayerState = PSPlayerState == nullptr ? GetPlayerState<APSPlayerState>() : PSPlayerState;
+	if (PSPlayerState == nullptr) return ETeam::ET_NoTeam;
+	{
+		return PSPlayerState->GetTeam();
+	}
+
 }
