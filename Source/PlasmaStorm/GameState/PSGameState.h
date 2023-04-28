@@ -47,6 +47,35 @@ public:
 	UFUNCTION()
 	void OnRep_BlueTeamScore();
 
+protected:
+
+	UPROPERTY(EditAnywhere)
+	class USoundCue* TakenTheLead;
+
+	UPROPERTY(EditAnywhere)
+	USoundCue* TakenTheLeadFirstBlood;
+
+	UPROPERTY(EditAnywhere)
+	USoundCue* FirstBlood;
+
+	UPROPERTY(EditAnywhere)
+	USoundCue* TiedTheLead;
+
+	UPROPERTY(EditAnywhere)
+	USoundCue* LostTheLead;
+
+	UPROPERTY(EditAnywhere)
+	USoundCue* RedHasTakenTheLead;
+
+	UPROPERTY(EditAnywhere)
+	USoundCue* BlueHasTakenTheLead;
+
+	UPROPERTY(EditAnywhere)
+	float AnnouncmentDelay = .5f;
+
+	bool bBlueInLead = false;
+	bool bRedInLead = false;
+	
 
 private:
 

@@ -2,6 +2,8 @@
 
 
 #include "FlagZone.h"
+#include "Sound/SoundCue.h"
+#include "Kismet/GameplayStatics.h"
 #include "PlasmaStorm/Weapon/flag.h"
 #include "Components/SphereComponent.h"
 #include "PlasmaStorm/Character/PSCharacter.h"
@@ -36,20 +38,45 @@ void AFlagZone::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor
 			if (GameMode)
 			{
 				GameMode->FlagCaptured(OverlappingFlag, this);
-
+				
+				ServerPlayFlagCaptured();
+				
+				UWorld* World = GetWorld();
+				if (World)
+				{
+					FVector Location = OverlappingFlag->GetOriginalTransform().GetLocation();
+					FRotator Rotation = OverlappingFlag->GetOriginalTransform().Rotator();
+					FActorSpawnParameters SpawnParams;
+					AFlag* NewFlag = World->SpawnActor<AFlag>(FlagClass, Location, Rotation, SpawnParams);
+					
+					
+				}
 				if (FlagBearer)
 				{
-					OverlappingFlag->SetReturnTimer();
+					//OverlappingFlag->SetReturnTimer();
 					FlagBearer->DropFlag();
 
 				}
-				OverlappingFlag->SetReturnTimer();
+				OverlappingFlag->Destroy();
 				//OverlappingFlag->ReturnFlag();
 				//ServerReturnFlag(FlagBearer, OverlappingFlag);
 			}
 		}
 	}
 	
+}
+
+void AFlagZone::ServerPlayFlagCaptured_Implementation()
+{
+	MulticastPlayFlagCaptured();
+}
+
+void AFlagZone::MulticastPlayFlagCaptured_Implementation()
+{
+	if (FlagCapturedQue)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, FlagCapturedQue, GetActorLocation());
+	}
 }
 
 void AFlagZone::ServerReturnFlag_Implementation(APSCharacter* Character, AFlag* Flag)

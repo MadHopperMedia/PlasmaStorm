@@ -46,7 +46,16 @@ public:
 	void HideTeamScores();
 	void InitTeamScores();
 	void SetHUDRedTeamScore(int32 RedScore);
-	void SetHUDBlueTeamScore(int32 BlueScore);
+	void SetHUDBlueTeamScore(int32 BlueScore);	
+	UFUNCTION(Client, Reliable)
+	void ClientPlayAnnouncment(USoundCue* Sound, float Delay);
+
+	UFUNCTION(Client, Reliable)
+	void ClientPlayHeadShot(USoundCue* Sound);
+	USoundCue* AnnouncmentSound;
+	USoundCue* HeadShotSound;
+	UPROPERTY(EditAnywhere)
+	float AnnouncmentVolume = 3.f;
 
 	FHighPingDelegate HighPingDelegate;
 
@@ -174,7 +183,12 @@ private:
 
 	UPROPERTY(EditAnywhere)
 	float HighPingThreshold = 50.f;
-	
+
+	FTimerHandle PlayAnnouncmentTimer;
+	FTimerHandle PlayHeadShotTimer;
+
+	void PlayAnnouncment();
+	void PlayHeadShot();
 	
 public:
 	UPROPERTY(BlueprintReadWrite)

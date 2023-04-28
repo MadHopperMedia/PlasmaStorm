@@ -26,13 +26,17 @@ protected:
 	virtual void DroppedTimerFinished() override;
 
 	UPROPERTY()
-	FTransform OriginalTransform;
+		FTransform OriginalTransform;
 private:
 		UPROPERTY(VisibleAnywhere)
 		UStaticMeshComponent* FlagMesh;
 		UFUNCTION(Server, Reliable)
 		void ServerReturnFlag();
 		float ReturnDelay = 30.f;
+
+public:
+	FORCEINLINE FTransform GetOriginalTransform() const { return OriginalTransform; }
+	
 
 
 

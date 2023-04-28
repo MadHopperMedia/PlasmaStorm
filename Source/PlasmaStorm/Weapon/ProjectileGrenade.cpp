@@ -35,7 +35,7 @@ void AProjectileGrenade::OnBounce(const FHitResult& ImpactResult, const FVector&
 	if (BounceSound)
 	{
 		APSCharacter* HitPlayer = Cast<APSCharacter>(ImpactResult.GetActor());
-		if (HitPlayer)
+		if (HitPlayer && HitPlayer != GetOwner())
 		{
 			APawn* OwnerPawn = Cast<APawn>(GetOwner());
 			if (OwnerPawn)

@@ -72,10 +72,14 @@ public:
 	class USoundCue* EquipSound;
 
 	UPROPERTY(EditAnywhere)
-	class USoundCue* ZoomSound;
+	USoundCue* ZoomSound;	
 
 	UPROPERTY(EditAnywhere)
-	class USoundCue* UnZoomSound;
+	USoundCue* UnZoomSound;
+
+	UPROPERTY(EditAnywhere)
+	USoundCue* HeadShotSound;
+
 	UPROPERTY(EditAnywhere)
 	EFireType FireType;
 
@@ -96,7 +100,7 @@ protected:
 
 	FTimerHandle DroppedTimer;
 	UPROPERTY(EditDefaultsOnly)
-		float DroppedDelay = 20.f;
+	float DroppedDelay = 20.f;
 	UPROPERTY(EditAnywhere, Category = "Weapon Properties")
 	float WeaponRange = 30000.f;
 	UPROPERTY(EditAnywhere, Category = "Weapon Properties")
@@ -229,4 +233,5 @@ public:
 	FORCEINLINE float GetDamage() const { return Damage; }
 	FORCEINLINE float GetHeadshotDamage() const { return HeadShotDamage; }
 	FORCEINLINE ETeam GetTeam() const { return Team; }
+	FORCEINLINE void SetTeam(ETeam NewTeam) { Team = NewTeam; }
 };

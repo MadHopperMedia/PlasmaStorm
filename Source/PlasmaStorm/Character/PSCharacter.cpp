@@ -339,7 +339,7 @@ void APSCharacter::HideCharacterIfCharacterClose()
 		GetMesh()->SetVisibility(false);
 		if (Combat && Combat->EquippedWeapon && Combat->EquippedWeapon->GetWeaponMesh())
 		{
-			Combat->EquippedWeapon->GetWeaponMesh()->bOwnerNoSee = true;
+			//Combat->EquippedWeapon->GetWeaponMesh()->bOwnerNoSee = true;
 		}
 		if (Combat && Combat->MountedWeapon && Combat->MountedWeapon->GetWeaponMesh())
 		{
@@ -351,7 +351,7 @@ void APSCharacter::HideCharacterIfCharacterClose()
 		GetMesh()->SetVisibility(true);
 		if (Combat && Combat->EquippedWeapon && Combat->EquippedWeapon->GetWeaponMesh())
 		{
-			Combat->EquippedWeapon->GetWeaponMesh()->bOwnerNoSee = false;
+			//Combat->EquippedWeapon->GetWeaponMesh()->bOwnerNoSee = false;
 		}
 		if (Combat && Combat->MountedWeapon && Combat->MountedWeapon->GetWeaponMesh())
 		{

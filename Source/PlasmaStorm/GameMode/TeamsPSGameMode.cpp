@@ -15,24 +15,49 @@ ATeamsPSGameMode::ATeamsPSGameMode()
 
 void ATeamsPSGameMode::PostLogin(APlayerController* NewPlayer)
 {
+	
 	Super::PostLogin(NewPlayer);
+	int32 SortingType = FMath::FRandRange(0, 20); 
+
+
 	APSGameState* PSGameState = Cast<APSGameState>(UGameplayStatics::GetGameState(this));
 	if (PSGameState)
 	{
-		APSPlayerState* PSPState = NewPlayer->GetPlayerState<APSPlayerState>();
-		if (PSPState && PSPState->GetTeam() == ETeam::ET_NoTeam)
+		if (SortingType > 5 && SortingType <= 10 || SortingType > 15)
 		{
-			if (PSGameState->BlueTeam.Num() >= PSGameState->RedTeam.Num())
+			APSPlayerState* PSPState = NewPlayer->GetPlayerState<APSPlayerState>();
+			if (PSPState && PSPState->GetTeam() == ETeam::ET_NoTeam)
 			{
-				PSGameState->RedTeam.AddUnique(PSPState);
-				PSPState->SetTeam(ETeam::ET_RedTeam);
-			}
-			else
-			{
-				PSGameState->BlueTeam.AddUnique(PSPState);
-				PSPState->SetTeam(ETeam::ET_BlueTeam);
+				if (PSGameState->BlueTeam.Num() >= PSGameState->RedTeam.Num())
+				{
+					PSGameState->RedTeam.AddUnique(PSPState);
+					PSPState->SetTeam(ETeam::ET_RedTeam);
+				}
+				else
+				{
+					PSGameState->BlueTeam.AddUnique(PSPState);
+					PSPState->SetTeam(ETeam::ET_BlueTeam);
+				}
 			}
 		}
+		else
+		{
+			APSPlayerState* PSPState = NewPlayer->GetPlayerState<APSPlayerState>();
+			if (PSPState && PSPState->GetTeam() == ETeam::ET_NoTeam)
+			{
+				if (PSGameState->BlueTeam.Num() <= PSGameState->RedTeam.Num())
+				{
+					PSGameState->BlueTeam.AddUnique(PSPState);
+					PSPState->SetTeam(ETeam::ET_BlueTeam);
+				}
+				else
+				{
+					PSGameState->RedTeam.AddUnique(PSPState);
+					PSPState->SetTeam(ETeam::ET_RedTeam);
+				}
+			}
+		}
+		
 	}
 }
 

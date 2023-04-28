@@ -88,3 +88,17 @@ void APSPlayerState::OnRep_Defeats()
 		}
 	}
 }
+
+void APSPlayerState::PlayAnnouncement(USoundCue* Sound, float AnnouncmentDelay)
+{
+	
+	Character = Character == nullptr ? Cast<APSCharacter>(GetPawn()) : Character;
+	if (Character)
+	{
+		Controller = Controller == nullptr ? Cast<APSPlayerController>(Character->Controller) : Controller;
+		if (Controller)
+		{
+			Controller->ClientPlayAnnouncment(Sound, AnnouncmentDelay);
+		}
+	}
+}

@@ -18,6 +18,7 @@
 #include "Sound/SoundCue.h"
 #include "Components/Image.h"
 #include "PlasmaStorm/HUD/PauseMenu.h"
+#include "Sound/SoundCue.h"
 
 
 
@@ -543,7 +544,39 @@ void APSPlayerController::OnRep_ShowTeamScores()
 	}
 }
 
+void APSPlayerController::ClientPlayAnnouncment_Implementation(USoundCue* Sound, float Delay)
+{
+	AnnouncmentSound = Sound;
+	GetWorldTimerManager().SetTimer(
+		PlayAnnouncmentTimer,
+		this,
+		&APSPlayerController::PlayAnnouncment,
+		Delay
+	);
+	
+}
 
+void APSPlayerController::ClientPlayHeadShot_Implementation(USoundCue* Sound)
+{
+	HeadShotSound = Sound;
+	GetWorldTimerManager().SetTimer(
+		PlayHeadShotTimer,
+		this,
+		&APSPlayerController::PlayHeadShot,
+		.2f
+	);
+}
+
+void APSPlayerController::PlayAnnouncment()
+{
+	UGameplayStatics::PlaySound2D(this, AnnouncmentSound, AnnouncmentVolume);
+	
+}
+
+void APSPlayerController::PlayHeadShot()
+{
+	UGameplayStatics::PlaySound2D(this, HeadShotSound, AnnouncmentVolume);
+}
 
 void APSPlayerController::HandleCooldown()
 {
@@ -664,6 +697,8 @@ void APSPlayerController::SetHUDBlueTeamScore(int32 BlueScore)
 		PSHUD->CharacterOverlay->BlueScore->SetText(FText::FromString(ScoreText));
 	}	
 }
+
+
 
 void APSPlayerController::SetInverted(bool Inverted)
 {
