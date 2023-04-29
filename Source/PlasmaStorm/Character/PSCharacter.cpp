@@ -333,15 +333,16 @@ void APSCharacter::SetSpawnPoint()
 
 void APSCharacter::HideCharacterIfCharacterClose()
 {
-	if (!IsLocallyControlled()) return;
-	if ((FollowCamera->GetComponentLocation() - GetActorLocation()).Size() < CameraThreshold)
+	bool bFPSView = (FollowCamera->GetComponentLocation() - GetActorLocation()).Size() < CameraThreshold;
+	if (!IsLocallyControlled() || Combat == nullptr) return;
+	if (bFPSView)
 	{
 		GetMesh()->SetVisibility(false);
-		if (Combat && Combat->EquippedWeapon && Combat->EquippedWeapon->GetWeaponMesh())
+		if (Combat->EquippedWeapon && Combat->EquippedWeapon->GetWeaponMesh())
 		{
-			//Combat->EquippedWeapon->GetWeaponMesh()->bOwnerNoSee = true;
+			Combat->EquippedWeapon->GetWeaponMesh()->bOwnerNoSee = true;
 		}
-		if (Combat && Combat->MountedWeapon && Combat->MountedWeapon->GetWeaponMesh())
+		if (Combat->MountedWeapon && Combat->MountedWeapon->GetWeaponMesh())
 		{
 			Combat->MountedWeapon->GetWeaponMesh()->bOwnerNoSee = true;
 		}
@@ -351,7 +352,7 @@ void APSCharacter::HideCharacterIfCharacterClose()
 		GetMesh()->SetVisibility(true);
 		if (Combat && Combat->EquippedWeapon && Combat->EquippedWeapon->GetWeaponMesh())
 		{
-			//Combat->EquippedWeapon->GetWeaponMesh()->bOwnerNoSee = false;
+			Combat->EquippedWeapon->GetWeaponMesh()->bOwnerNoSee = false;
 		}
 		if (Combat && Combat->MountedWeapon && Combat->MountedWeapon->GetWeaponMesh())
 		{
@@ -1085,7 +1086,7 @@ void APSCharacter::Elim(bool bPlayerLeftGame)
 		
 	}
 	MulticastElim(bPlayerLeftGame);
-	
+	WasElimmed();
 }
 
 void APSCharacter::PlayKillSound_Implementation()
@@ -1130,6 +1131,7 @@ void APSCharacter::ServerLeaveGame_Implementation()
 void APSCharacter::MulticastElim_Implementation(bool bPlayerLeftGame)
 {		
 	bLeftGame = bPlayerLeftGame;
+	WasElimmed();
 	if (Material)
 	{		
 		//DynamicDissolveMaterialInstance = UMaterialInstanceDynamic::Create(DissolveMaterialInstance, this);

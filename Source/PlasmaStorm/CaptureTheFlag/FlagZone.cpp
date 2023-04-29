@@ -75,7 +75,7 @@ void AFlagZone::MulticastPlayFlagCaptured_Implementation()
 {
 	if (FlagCapturedQue)
 	{
-		UGameplayStatics::PlaySoundAtLocation(this, FlagCapturedQue, GetActorLocation());
+		UGameplayStatics::PlaySoundAtLocation(this, FlagCapturedQue, GetActorLocation(), 5.f);
 	}
 }
 

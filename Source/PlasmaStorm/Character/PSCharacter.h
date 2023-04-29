@@ -56,7 +56,8 @@ public:
 	bool bDisableGameplay = false;
 	UFUNCTION(BlueprintImplementableEvent)
 	void ShowSniperScopeWidget(bool bShowScope);
-
+	UFUNCTION(BlueprintImplementableEvent)
+	void WasElimmed();
 	void SetTeamColor(ETeam Team);
 	void DropFlag();
 
@@ -181,7 +182,6 @@ private:
 
 	UFUNCTION(Server, Reliable)
 	void ServerDropFlag();
-
 
 	FTimerHandle EquipTimer;
 
@@ -374,6 +374,7 @@ public:
 	void SetOverlappingWeapon(AWeapon* Weapon);
 	bool IsWeaponEquipped();
 	bool IsAiming();
+	UFUNCTION(BlueprintCallable)
 	AWeapon* GetEquippedWeapon();
 	FVector GetHitTarget() const;
 	FORCEINLINE float GetAo_Yaw() const { return Ao_Yaw; }
