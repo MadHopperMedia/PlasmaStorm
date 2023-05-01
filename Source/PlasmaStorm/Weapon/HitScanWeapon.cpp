@@ -50,6 +50,13 @@ void AHitScanWeapon::Fire(const FVector& HitTarget)
 					this,
 					UDamageType::StaticClass()
 				);
+
+				
+				if (HeadShotSound && FireHit.BoneName.ToString() == FString("head"))
+				{
+					APSPlayerController* PSController = Cast<APSPlayerController>(InstigatorController);
+					PSController->ClientPlayHeadShot(HeadShotSound);
+				}
 			}
 			if (!HasAuthority() && bUseServerSideRewind)
 			{

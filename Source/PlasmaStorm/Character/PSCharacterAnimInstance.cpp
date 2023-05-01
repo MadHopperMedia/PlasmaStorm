@@ -38,6 +38,7 @@ void UPSCharacterAnimInstance::NativeUpdateAnimation(float DeltaTime)
 	bIsHovering = PSCharacter->GetIsFlying();
 	bIsFlying = PSCharacter->GetIsFlyingForward();
 	bIsIdoling = PSCharacter->GetIsIdoling();
+	bHoldingTheFlag = PSCharacter->IsHoldingThFlag();
 	bIsBoosting = (PSCharacter->GetIsBoosting() && Speed > 100);
 	TurningInPlace = PSCharacter->GetTurningInPlace();
 	FlyingRotation = PSCharacter->GetFlyingRotation();
@@ -81,10 +82,13 @@ void UPSCharacterAnimInstance::NativeUpdateAnimation(float DeltaTime)
 	}
 
 	bUseFABRIK = PSCharacter->GetCombatState() == ECombatState::ECS_Unoccupied;
-	bool bFABRIKOverride = PSCharacter->IsLocallyControlled() && 
-		PSCharacter->GetCombatState() == ECombatState::ECS_ThrowingGrenade;
-	if (bFABRIKOverride)
+	bool bFABRIKOverride = PSCharacter->GetCombatState() == ECombatState::ECS_ThrowingGrenade;
+	if (bFABRIKOverride && !bHoldingTheFlag)
 	{
-		bUseFABRIK = !PSCharacter->IsLocallyReloading() && PSCharacter->bFinishedSwapping;
+		//bUseFABRIK = !PSCharacter->IsLocallyReloading() && PSCharacter->bFinishedSwapping;
+	}
+	if (PSCharacter->IsLocallyControlled() && PSCharacter->GetFPSView())
+	{
+		//bUseFABRIK = false;
 	}
 }

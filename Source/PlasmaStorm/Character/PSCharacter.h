@@ -56,9 +56,10 @@ public:
 	bool bDisableGameplay = false;
 	UFUNCTION(BlueprintImplementableEvent)
 	void ShowSniperScopeWidget(bool bShowScope);
-
+	UFUNCTION(BlueprintImplementableEvent)
+	void WasElimmed();
 	void SetTeamColor(ETeam Team);
-
+	void DropFlag();
 
 	UPROPERTY()
 		TMap<FName, class UBoxComponent*> HitCollisionBoxes;
@@ -121,6 +122,13 @@ public:
 	bool bFinishedSwapping = true;
 
 	FOnLeftGame OnLeftGame;
+
+	/**
+	* First person components
+	*/
+
+	UPROPERTY(EditAnywhere)	
+	class USkeletalMeshComponent* FPSMesh;
 protected:
 
 	void ForwardMovement(float Val);
@@ -148,6 +156,8 @@ protected:
 	void RecieveDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, class AController* InstigatorController, AActor* DamageCauser);
 	void PollInit();
 	void UpdateHUDAmmo();
+	void SetSpawnPoint();
+	void OnPlayerStateInitialized();
 	
 	
 private:
@@ -177,6 +187,8 @@ private:
 	UFUNCTION(Server, Reliable)
 	void ServerSwapWeaponsButtonPressed();
 
+	UFUNCTION(Server, Reliable)
+	void ServerDropFlag();
 
 	FTimerHandle EquipTimer;
 
@@ -362,13 +374,20 @@ private:
 
 	UPROPERTY()
 	APSCharacter* TargetCharacter;
+
+	bool bFPSView;
+	UPROPERTY(EditAnywhere)
+	float FPSCameraThreshold = 30.f;
 	
+	bool bUseFirstPerson = false;
 
 public:
+	UPROPERTY(BlueprintReadWrite)
 	bool bIsCrouching;
 	void SetOverlappingWeapon(AWeapon* Weapon);
 	bool IsWeaponEquipped();
 	bool IsAiming();
+	UFUNCTION(BlueprintCallable)
 	AWeapon* GetEquippedWeapon();
 	FVector GetHitTarget() const;
 	FORCEINLINE float GetAo_Yaw() const { return Ao_Yaw; }
@@ -402,6 +421,7 @@ public:
 	FORCEINLINE void SetToggleBoost(bool ToggleBoost) { bToggleBoost = ToggleBoost; }
 	FORCEINLINE bool GetIsBoosting() { return bIsBoosting; }
 	FORCEINLINE bool GetbIsAccelerating() { return bIsAccelerating; }
+	FORCEINLINE bool GetFPSView() const { return bFPSView; }
 	FORCEINLINE void AddRecoilOnFire(float RecoilAmount) { PlayerPitch(RecoilAmount); }
 	UFUNCTION(BlueprintCallable)
 	bool GetIsFlying() { return bIsFlying; }
@@ -418,6 +438,13 @@ public:
 	FORCEINLINE ULagCompensationComponent* GetLagCompensation() const { return LagCompensation; }
 	UFUNCTION(BlueprintCallable)
 	AWeapon* GetMountedWeapon();
-	
-	
+	UFUNCTION(BlueprintCallable)
+	bool IsHoldingThFlag() const;
+	ETeam GetTeam();
+	void SetHoldingTheFalg(bool bHolding);
+	FORCEINLINE USkeletalMeshComponent* GetFPSMesh() const { return FPSMesh; }
+	UFUNCTION(BlueprintCallable)
+	FORCEINLINE bool GetUseFPS() const { return bUseFirstPerson; }
+	UFUNCTION(BlueprintCallable)
+	FORCEINLINE void SetUseFirstPerson(bool bUseFPS) { bUseFirstPerson = bUseFPS; }
 };

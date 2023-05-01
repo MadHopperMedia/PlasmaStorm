@@ -38,10 +38,17 @@ private:
 
 	UFUNCTION()
 	void OnRep_Team();
+	
+	bool bHasTheLead = false;
 
 public:
 
 	FORCEINLINE	ETeam GetTeam() const { return Team; }
 	void SetTeam(ETeam TeamToSet);
+
+	void PlayAnnouncement(class USoundCue* Sound, float AnnouncmentDelay);
+
+	FORCEINLINE	void SetHasTheLead(bool bLead) { bHasTheLead = bLead; }
+	FORCEINLINE	bool GetHasTheLead() const { return bHasTheLead; }
 	
 };

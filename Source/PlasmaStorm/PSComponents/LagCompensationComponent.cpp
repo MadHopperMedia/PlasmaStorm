@@ -3,6 +3,7 @@
 
 #include "LagCompensationComponent.h"
 #include "PlasmaStorm/Character/PSCharacter.h"
+#include "PlasmaStorm/PlayerController/PSPlayerController.h"
 #include "Components/BoxComponent.h"
 #include "DrawDebugHelpers.h"
 #include "Kismet/GameplayStatics.h"
@@ -557,7 +558,7 @@ void ULagCompensationComponent::ServerScoreRequest_Implementation(APSCharacter* 
 {
 	FServerSideRewindResault Confirm = ServerSideRewind(HitCharacter, TraceStart, HitLocation, HitTime);
 
-	if (Character &&HitCharacter && Confirm.bHitConfirmed && DamageCauser)
+	if (Character && HitCharacter && Confirm.bHitConfirmed && DamageCauser)
 	{
 		const float Damage = Confirm.bHeadShot ? DamageCauser->GetHeadshotDamage() : DamageCauser->GetDamage();
 		UGameplayStatics::ApplyDamage(
@@ -567,6 +568,15 @@ void ULagCompensationComponent::ServerScoreRequest_Implementation(APSCharacter* 
 			DamageCauser,
 			UDamageType::StaticClass()
 		);
+		if (DamageCauser->HeadShotSound && Confirm.bHeadShot)
+		{
+			APSPlayerController* OwnerController = Cast<APSPlayerController>(Character->GetController());
+			if (OwnerController)
+			{
+				OwnerController->ClientPlayHeadShot(DamageCauser->HeadShotSound);
+			}
+		}
+
 	}
 }
 

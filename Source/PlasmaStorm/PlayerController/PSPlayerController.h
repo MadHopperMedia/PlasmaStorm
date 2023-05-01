@@ -46,7 +46,16 @@ public:
 	void HideTeamScores();
 	void InitTeamScores();
 	void SetHUDRedTeamScore(int32 RedScore);
-	void SetHUDBlueTeamScore(int32 BlueScore);
+	void SetHUDBlueTeamScore(int32 BlueScore);	
+	UFUNCTION(Client, Reliable)
+	void ClientPlayAnnouncment(USoundCue* Sound, float Delay);
+
+	UFUNCTION(Client, Reliable)
+	void ClientPlayHeadShot(USoundCue* Sound);
+	USoundCue* AnnouncmentSound;
+	USoundCue* HeadShotSound;
+	UPROPERTY(EditAnywhere)
+	float AnnouncmentVolume = 3.f;
 
 	FHighPingDelegate HighPingDelegate;
 
@@ -87,6 +96,8 @@ protected:
 	void SetInverted(bool Inverted);
 	UFUNCTION(BlueprintCallable)
 	void SetToggleBoost(bool ToggleBoost);
+	UFUNCTION(BlueprintCallable)
+	void SetFPS(bool bFPS);
 
 	void HighPingWarning();
 	void StopHighPingWarning();
@@ -100,12 +111,13 @@ protected:
 	UFUNCTION()
 	void OnRep_ShowTeamScores();
 
-private:
+	FString GetInfoText(const TArray<class APSPlayerState*>& Players);
+	FString GetTeamsInfoText(class APSGameState* PSGameState);
 
+private:
 
 	UPROPERTY()
 	class APSHud* PSHUD;
-
 
 	/**
 	* Retun to main menu
@@ -153,6 +165,7 @@ private:
 	float HUDShield;
 	bool bInitializeShield = false;
 	float HUDMaxShield;
+	bool bInitializeTeamScores = false;
 
 	float HUDStamina;
 	bool bInitializeStamina = false;
@@ -172,13 +185,20 @@ private:
 
 	UPROPERTY(EditAnywhere)
 	float HighPingThreshold = 50.f;
-	
+
+	FTimerHandle PlayAnnouncmentTimer;
+	FTimerHandle PlayHeadShotTimer;
+
+	void PlayAnnouncment();
+	void PlayHeadShot();
 	
 public:
 	UPROPERTY(BlueprintReadWrite)
 	bool bInverted = false;
 	UPROPERTY(BlueprintReadWrite)
 	bool bToggleBoost = false;
+	UPROPERTY(BlueprintReadWrite)
+	bool bUseFPS = false;
 	
 	
 	

@@ -39,7 +39,9 @@ void UCombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	DOREPLIFETIME_CONDITION(UCombatComponent, CarriedAmmo, COND_OwnerOnly);
 	DOREPLIFETIME(UCombatComponent, CombatState);
 	DOREPLIFETIME(UCombatComponent, Grenades); 
-	DOREPLIFETIME(UCombatComponent, TargetCharacter);
+	DOREPLIFETIME(UCombatComponent, TargetCharacter); 
+	DOREPLIFETIME(UCombatComponent, bHoldingTheFlag);
+	DOREPLIFETIME(UCombatComponent, TheFlag);
 }
 
 void UCombatComponent::BeginPlay()
@@ -133,16 +135,32 @@ void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip)
 {
 	if (Character == nullptr || WeaponToEquip == nullptr) return;
 	if (CombatState != ECombatState::ECS_Unoccupied) return;
-	if (EquippedWeapon != nullptr && SecondaryWeapon == nullptr)
-	{
-		EquipSecondaryweapon(WeaponToEquip);
-		bPlaySecondaryEquip = true;		
+	if (WeaponToEquip->GetWeaponType() == EWeaponType::EWT_Flag)
+	{		
+		TheFlag = WeaponToEquip;
+		TheFlag->SetWeaponState(EWeaponState::EWS_Equipped);
+		AttachFlagToLeftHand(TheFlag);
+		TheFlag->SetOwner(Character);
+		bHoldingTheFlag = true;
 	}
 	else
 	{
-		EquipPrimaryWeapon(WeaponToEquip);
-		bPlaySecondaryEquip = false;
+		if (EquippedWeapon != nullptr && SecondaryWeapon == nullptr)
+		{
+			EquipSecondaryweapon(WeaponToEquip);
+			bPlaySecondaryEquip = true;
+		}
+		else
+		{
+			EquipPrimaryWeapon(WeaponToEquip);
+			bPlaySecondaryEquip = false;
+		}
 	}	
+}
+
+void UCombatComponent::OnRep_HoldingtheFlag()
+{
+	
 }
 
 void UCombatComponent::EquipPrimaryWeapon(AWeapon* WeaponToEquip)
@@ -194,6 +212,16 @@ void UCombatComponent::OnRep_EquippedWeapon()
 	}
 }
 
+void UCombatComponent::OnRep_TheFlag()
+{
+	if (TheFlag && Character)
+	{
+		TheFlag->SetWeaponState(EWeaponState::EWS_Equipped);
+		AttachFlagToLeftHand(TheFlag);
+		bHoldingTheFlag = true;
+	}
+}
+
 void UCombatComponent::OnRep_SecondaryWeapon()
 {
 	if (SecondaryWeapon && Character)
@@ -224,7 +252,16 @@ void UCombatComponent::DropEquippedWeapon()
 	}
 }
 
-void DropGrenades()
+void UCombatComponent::DropFlag()
+{
+	AWeapon* Flag = Cast<AWeapon>(TheFlag);
+	if (Flag)
+	{		
+		Flag->Dropped();
+	}
+}
+
+void UCombatComponent::DropGrenades()
 {
 	
 }
@@ -259,10 +296,16 @@ void UCombatComponent::AttachActorToRightHand(AActor* ActorToAttach)
 	if (Character == nullptr || Character->GetMesh() == nullptr || ActorToAttach == nullptr) return;
 
 	const USkeletalMeshSocket* HandSocket = Character->GetMesh()->GetSocketByName(FName("RightHandSocket"));
-	if (HandSocket)
+	const USkeletalMeshSocket* FPS_Socket = Character->GetFPSMesh()->GetSocketByName(FName("FPS_Socket"));
+	bool bUseFirstPersonMesh = Character->IsLocallyControlled();
+	if (FPS_Socket && bUseFirstPersonMesh)
+	{
+		FPS_Socket->AttachActor(ActorToAttach, Character->GetFPSMesh());		
+	}
+	else if (!bUseFirstPersonMesh && HandSocket)
 	{
 		HandSocket->AttachActor(ActorToAttach, Character->GetMesh());
-	}
+	}	
 }
 
 void UCombatComponent::AttachActorToLeftHand(AActor* ActorToAttach)
@@ -276,6 +319,17 @@ void UCombatComponent::AttachActorToLeftHand(AActor* ActorToAttach)
 	if (HandSocket)
 	{
 		HandSocket->AttachActor(ActorToAttach, Character->GetMesh());		
+	}
+}
+
+void UCombatComponent::AttachFlagToLeftHand(AWeapon* Flag)
+{
+	if (Character == nullptr || Character->GetMesh() == nullptr || Flag == nullptr) return;
+
+	const USkeletalMeshSocket* HandSocket = Character->GetMesh()->GetSocketByName(FName("FlagSocket"));
+	if (HandSocket)
+	{
+		HandSocket->AttachActor(Flag, Character->GetMesh());
 	}
 }
 
@@ -537,7 +591,7 @@ void UCombatComponent::Fire()
 				}
 			}
 			
-		}
+		}		
 		Character->AddRecoilOnFire(RecoilAmount);
 		StartFireTimer();		
 	}

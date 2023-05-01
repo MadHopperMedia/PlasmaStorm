@@ -4,6 +4,7 @@
 #include "TeamsPSGameMode.h"
 #include "PlasmaStorm/GameState/PSGameState.h"
 #include "PlasmaStorm/PlayerState/PSPlayerState.h"
+#include "PlasmaStorm//PlayerController/PSPlayerController.h"
 #include "Kismet/Gameplaystatics.h"
 
 
@@ -14,25 +15,71 @@ ATeamsPSGameMode::ATeamsPSGameMode()
 
 void ATeamsPSGameMode::PostLogin(APlayerController* NewPlayer)
 {
+	
 	Super::PostLogin(NewPlayer);
+	int32 SortingType = FMath::FRandRange(0, 20); 
+
+
 	APSGameState* PSGameState = Cast<APSGameState>(UGameplayStatics::GetGameState(this));
 	if (PSGameState)
 	{
-		APSPlayerState* PSPState = NewPlayer->GetPlayerState<APSPlayerState>();
-		if (PSPState && PSPState->GetTeam() == ETeam::ET_NoTeam)
+		if (SortingType > 5 && SortingType <= 10 || SortingType > 15)
 		{
-			if (PSGameState->BlueTeam.Num() >= PSGameState->RedTeam.Num())
+			APSPlayerState* PSPState = NewPlayer->GetPlayerState<APSPlayerState>();
+			if (PSPState && PSPState->GetTeam() == ETeam::ET_NoTeam)
 			{
-				PSGameState->RedTeam.AddUnique(PSPState);
-				PSPState->SetTeam(ETeam::ET_RedTeam);
-			}
-			else
-			{
-				PSGameState->BlueTeam.AddUnique(PSPState);
-				PSPState->SetTeam(ETeam::ET_BlueTeam);
+				if (PSGameState->BlueTeam.Num() >= PSGameState->RedTeam.Num())
+				{
+					PSGameState->RedTeam.AddUnique(PSPState);
+					PSPState->SetTeam(ETeam::ET_RedTeam);
+				}
+				else
+				{
+					PSGameState->BlueTeam.AddUnique(PSPState);
+					PSPState->SetTeam(ETeam::ET_BlueTeam);
+				}
 			}
 		}
+		else
+		{
+			APSPlayerState* PSPState = NewPlayer->GetPlayerState<APSPlayerState>();
+			if (PSPState && PSPState->GetTeam() == ETeam::ET_NoTeam)
+			{
+				if (PSGameState->BlueTeam.Num() <= PSGameState->RedTeam.Num())
+				{
+					PSGameState->BlueTeam.AddUnique(PSPState);
+					PSPState->SetTeam(ETeam::ET_BlueTeam);
+				}
+				else
+				{
+					PSGameState->RedTeam.AddUnique(PSPState);
+					PSPState->SetTeam(ETeam::ET_RedTeam);
+				}
+			}
+		}
+		
 	}
+}
+
+void ATeamsPSGameMode::PlayerEliminated(class APSCharacter* ElimmedCharacter, class APSPlayerController* VictimController, class APSPlayerController* AttackerController)
+{
+	Super::PlayerEliminated(ElimmedCharacter, VictimController, AttackerController);
+
+	APSGameState* PSGameState = Cast<APSGameState>(UGameplayStatics::GetGameState(this));
+	APSPlayerState* AttackerPlayerState = AttackerController ? Cast<APSPlayerState>(AttackerController->PlayerState) : nullptr;
+	APSPlayerState* VictimPlayerState = VictimController ? Cast<APSPlayerState>(VictimController->PlayerState) : nullptr;
+	if (PSGameState && AttackerPlayerState)
+	{
+		if (AttackerPlayerState->GetTeam() == ETeam::ET_BlueTeam && VictimPlayerState->GetTeam() != ETeam::ET_BlueTeam)
+		{
+			PSGameState->BlueTeamScores();
+		}
+		if (AttackerPlayerState->GetTeam() == ETeam::ET_RedTeam && VictimPlayerState->GetTeam() != ETeam::ET_RedTeam)
+		{
+			PSGameState->RedTeamScores();
+		}
+	}
+
 }
 
 void ATeamsPSGameMode::Logout(AController* Exiting)
@@ -81,4 +128,6 @@ void ATeamsPSGameMode::HandleMatchHasStarted()
 		}		
 	}
 }
+
+
 

@@ -56,6 +56,8 @@ protected:
 	void OnRep_SecondaryWeapon();
 	UFUNCTION()
 	void OnRep_MountedWeapon();
+	UFUNCTION()
+	void OnRep_TheFlag();
 	void SetAiming(bool bIsAiming);
 	UFUNCTION(Server, Reliable)
 	void ServerSetAiming(bool bIsAiming);
@@ -97,9 +99,11 @@ protected:
 	UPROPERTY(EditAnywhere)
 	float GrenadeThrowAngle = 10.f;
 	void DropEquippedWeapon();
+	void DropFlag();
 	void DropGrenades();
 	void AttachActorToRightHand(AActor* ActorToAttach);
-	void AttachActorToLeftHand(AActor* ActorToAttach);	
+	void AttachActorToLeftHand(AActor* ActorToAttach);
+	void AttachFlagToLeftHand(AWeapon* Flag);
 	void AttachActorSecondarySocket(AActor* ActorToAttach);
 	void AttachActorMountedSocket(AActor* ActorToAttach);
 	void UpdateCarriedAmmo();
@@ -129,6 +133,8 @@ private:
 	AWeapon* SecondaryWeapon;
 	UPROPERTY(ReplicatedUsing = OnRep_SecondaryWeapon)
 	AWeapon* MountedWeapon;
+	UPROPERTY(ReplicatedUsing = OnRep_TheFlag)
+	AWeapon* TheFlag;
 	UPROPERTY(ReplicatedUsing = OnRep_Aiming)
 	bool bAiming = false;
 
@@ -261,6 +267,11 @@ private:
 	void UpdateAmmoValues();
 
 	float RecoilAmount = 0.f;
+	UPROPERTY(ReplicatedUsing = OnRep_HoldingtheFlag)
+	bool bHoldingTheFlag = false;
+
+	UFUNCTION()
+	void OnRep_HoldingtheFlag();
 
 public:	
 	FORCEINLINE int32 GetGrenades() const { return Grenades; }

@@ -22,8 +22,11 @@
 #include "PlasmaStorm/Character/PSCharacterAnimInstance.h"
 #include "PlasmaStorm/PlayerController/PSPlayerController.h"
 #include "PlasmaStorm/PSComponents/LagCompensationComponent.h"
+#include "PlasmaStorm/PlayerStart/TeamPlayerStart.h"
 #include "Components/SceneComponent.h"
 #include "Components/BoxComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Engine/SkeletalMeshSocket.h"
 
 
 APSCharacter::APSCharacter()
@@ -34,8 +37,11 @@ APSCharacter::APSCharacter()
 	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
 	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
 
-	Target = CreateDefaultSubobject<USceneComponent>(TEXT("TargetPoint"));
-	Target->SetupAttachment(GetMesh());
+	FPSMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FPSMesh"));
+	FPSMesh->SetupAttachment(GetFollowCamera());
+	FPSMesh->bOnlyOwnerSee = true;
+	FPSMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	FPSMesh->SetVisibility(false);
 
 	OverheadWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("OverheadWidget"));
 	OverheadWidget->SetupAttachment(RootComponent);
@@ -255,6 +261,14 @@ void APSCharacter::Tick(float DeltaTime)
 			Combat->MountedWeapon->bCanRecharge = true;
 		}
 	}
+	if (Combat && Combat->EquippedWeapon && IsHoldingThFlag())
+	{
+		Combat->EquippedWeapon->SetActorHiddenInGame(true);
+	}
+	else if (Combat && Combat->EquippedWeapon && !GetIsFlying())
+	{
+		Combat->EquippedWeapon->SetActorHiddenInGame(false);
+	}
 }
 
 void APSCharacter::PollInit()
@@ -271,8 +285,7 @@ void APSCharacter::PollInit()
 			UpdateHUDStamina();
 			bInverted = PSPlayerController->bInverted;
 			bToggleBoost = PSPlayerController->bToggleBoost;
-			
-			
+			bUseFirstPerson = PSPlayerController->bUseFPS;			
 		}
 	}
 	
@@ -282,45 +295,111 @@ void APSCharacter::PollInit()
 		PSPlayerState = GetPlayerState<APSPlayerState>();
 		if (PSPlayerState)
 		{
-			PSPlayerState->AddToScore(0.f);
-			PSPlayerState->AddToDefeats(0);
-			SetTeamColor(PSPlayerState->GetTeam());
+			OnPlayerStateInitialized();
 		}
+	}
+}
+
+void APSCharacter::OnPlayerStateInitialized()
+{
+	PSPlayerState->AddToScore(0.f);
+	PSPlayerState->AddToDefeats(0);
+	SetTeamColor(PSPlayerState->GetTeam());
+	SetSpawnPoint();
+}
+
+void APSCharacter::SetSpawnPoint()
+{
+	if (HasAuthority() && PSPlayerState->GetTeam() != ETeam::ET_NoTeam)
+	{
+		TArray<AActor*> PlayerStarts;
+		UGameplayStatics::GetAllActorsOfClass(this, ATeamPlayerStart::StaticClass(), PlayerStarts);
+		TArray<ATeamPlayerStart*> TeamPlayerStarts;
+		for (auto Start : PlayerStarts)
+		{
+			ATeamPlayerStart* TeamStart = Cast<ATeamPlayerStart>(Start);
+			if (TeamStart && TeamStart->Team == PSPlayerState->GetTeam())
+			{
+				TeamPlayerStarts.Add(TeamStart);
+			}
+		}
+		if (TeamPlayerStarts.Num() > 0)
+		{
+			ATeamPlayerStart* ChosenPlayerStart = TeamPlayerStarts[FMath::RandRange(0, TeamPlayerStarts.Num() - 1)];
+			SetActorLocationAndRotation(
+				ChosenPlayerStart->GetActorLocation(),
+				ChosenPlayerStart->GetActorRotation()
+			);
+		}
+		
 	}
 }
 
 void APSCharacter::HideCharacterIfCharacterClose()
 {
-	if (!IsLocallyControlled()) return;
-	if ((FollowCamera->GetComponentLocation() - GetActorLocation()).Size() < CameraThreshold)
+	bFPSView = (FollowCamera->GetComponentLocation() - GetActorLocation()).Size() < FPSCameraThreshold;
+	if ( Combat == nullptr) return;
+	if (bFPSView && IsLocallyControlled())
 	{
 		GetMesh()->SetVisibility(false);
-		if (Combat && Combat->EquippedWeapon && Combat->EquippedWeapon->GetWeaponMesh())
+		GetFPSMesh()->SetVisibility(true);
+		if (Combat->EquippedWeapon && Combat->EquippedWeapon->GetWeaponMesh())
 		{
-			Combat->EquippedWeapon->GetWeaponMesh()->bOwnerNoSee = true;
+			const USkeletalMeshSocket* FPS_Socket = GetFPSMesh()->GetSocketByName(FName("FPS_Socket"));
+			bool bUseFirstPersonMesh = IsLocallyControlled();
+			if (FPS_Socket && bUseFirstPersonMesh && !IsElimmed() && Combat->CombatState == ECombatState::ECS_Unoccupied)
+			{
+				FPS_Socket->AttachActor(Combat->EquippedWeapon, GetFPSMesh());
+			}
 		}
-		if (Combat && Combat->MountedWeapon && Combat->MountedWeapon->GetWeaponMesh())
-		{
-			Combat->MountedWeapon->GetWeaponMesh()->bOwnerNoSee = true;
-		}
+		if (Combat->MountedWeapon && Combat->MountedWeapon->GetWeaponMesh() && Combat->MountedWeapon->GetWeaponMesh()->bOwnerNoSee == false)
+		{			
+			Combat->MountedWeapon->GetWeaponMesh()->bOwnerNoSee = true;			
+		}		
 	}
-	else
+	else 
+	{		
+		GetFPSMesh()->SetVisibility(false);
+		if ((FollowCamera->GetComponentLocation() - GetActorLocation()).Size() > CameraThreshold)
+		{
+			GetMesh()->SetVisibility(true);
+			if (Combat && Combat->MountedWeapon && Combat->MountedWeapon->GetWeaponMesh())
+			{
+				Combat->MountedWeapon->GetWeaponMesh()->bOwnerNoSee = false;
+				
+			}
+		}
+		if (Combat && Combat->EquippedWeapon && Combat->EquippedWeapon->GetWeaponMesh())
+		{			
+			const USkeletalMeshSocket* HandSocket = GetMesh()->GetSocketByName(FName("RightHandSocket"));
+			bool bUseFirstPersonMesh = IsLocallyControlled();
+			if (HandSocket && bUseFirstPersonMesh || !bUseFirstPersonMesh)
+			{
+				if (IsElimmed() || Combat->CombatState != ECombatState::ECS_Unoccupied) return;
+				HandSocket->AttachActor(Combat->EquippedWeapon, GetMesh());
+			}
+		}		
+	}
+	if (bIsFlying || IsHoldingThFlag())
 	{
-		GetMesh()->SetVisibility(true);
-		if (Combat && Combat->EquippedWeapon && Combat->EquippedWeapon->GetWeaponMesh())
-		{
-			Combat->EquippedWeapon->GetWeaponMesh()->bOwnerNoSee = false;
-		}
-		if (Combat && Combat->MountedWeapon && Combat->MountedWeapon->GetWeaponMesh())
-		{
-			Combat->MountedWeapon->GetWeaponMesh()->bOwnerNoSee = false;
-		}
-	}
+		GetFPSMesh()->SetVisibility(false);
+	}	
 }
 
 void APSCharacter::ForwardMovement(float Val)
 {
-	
+	if (IsHoldingThFlag())
+	{
+		if (GetIsFlying())
+		{
+			Val = Val * .1f;
+		}
+		else
+		{
+			Val = Val * .5f;
+		}
+		
+	}
 	MoveForward(Val);
 }
 
@@ -362,14 +441,20 @@ void APSCharacter::SetTeamColor(ETeam Team)
 	case ETeam::ET_NoTeam:
 		GetMesh()->SetMaterial(0, Material);
 		GetMesh()->SetMaterial(1, Material1);
+		GetFPSMesh()->SetMaterial(0, Material);
+		GetFPSMesh()->SetMaterial(1, Material1);
 		break;
 	case ETeam::ET_RedTeam:
 		GetMesh()->SetMaterial(0, RedMaterial);
 		GetMesh()->SetMaterial(1, RedMaterial1);
+		GetFPSMesh()->SetMaterial(0, RedMaterial);
+		GetFPSMesh()->SetMaterial(1, RedMaterial1);
 		break;
 	case ETeam::ET_BlueTeam:
 		GetMesh()->SetMaterial(0, BlueMaterial);
 		GetMesh()->SetMaterial(1, BlueMaterial1);
+		GetFPSMesh()->SetMaterial(0, BlueMaterial);
+		GetFPSMesh()->SetMaterial(1, BlueMaterial1);
 		break;
 	}
 }
@@ -411,6 +496,7 @@ void APSCharacter::PlayerRoll(float Val)
 
 void APSCharacter::PlayerCrouch()
 {
+	if (IsHoldingThFlag()) return;
 	Crouch();
 }
 
@@ -490,7 +576,7 @@ void APSCharacter::OnRep_OverlappingWeapon(AWeapon* LastWeapon)
 
 void APSCharacter::SwitchWeaponButtonPressed()
 {
-	if (bIsFlying || Combat == nullptr) return;
+	if (bIsFlying || Combat == nullptr || IsHoldingThFlag()) return;
 		ServerSwapWeaponsButtonPressed();
 		if (!HasAuthority() && Combat->CombatState == ECombatState::ECS_Unoccupied)
 		{
@@ -540,7 +626,7 @@ AWeapon* APSCharacter::GetEquippedWeapon()
 
 void APSCharacter::AimButtonPressed()
 {
-	if (Combat && !bIsFlying)
+	if (Combat && !bIsFlying && !IsHoldingThFlag())
 	{
 		Combat->SetAiming(true);
 		Combat->PlayEquippedWeaponZoomSound();
@@ -681,6 +767,7 @@ void APSCharacter::OnRep_AoPitch()
 
 void APSCharacter::BoostButtonPressed()
 {
+	if (IsHoldingThFlag()) return;
 	if (bToggleBoost && bIsBoosting) 
 	{
 		StopBoosting();
@@ -731,12 +818,14 @@ void APSCharacter::SpawnDefaultWeapon()
 {
 	APSGameMode* PSGameMode = Cast<APSGameMode>(UGameplayStatics::GetGameMode(this));
 	UWorld* World = GetWorld();
-	if (PSGameMode && World && DefaultWeaponClass && !bElimmed)	{		
+	if (PSGameMode && World && DefaultWeaponClass && !bElimmed)	
+	{		
 
 		AWeapon* StartingWeapon = World->SpawnActor<AWeapon>(DefaultWeaponClass);
 		if (Combat)
 		{
 			Combat->EquipWeapon(StartingWeapon);
+			//StartingWeapon->GetWeaponMesh()->SetVisibility(false);
 		}
 		
 		if (DefaultSecondaryWeaponClass)
@@ -755,11 +844,34 @@ void APSCharacter::SpawnDefaultWeapon()
 
 void APSCharacter::FireButtonPressed()
 {
-	
-	if (bIsBoosting || bIsFlying && !bTransitioningfromFlight) return;
+	if (Combat && IsHoldingThFlag())
+	{		
+		DropFlag();
+		return;
+	}
+	if (bIsBoosting || bIsFlying && !bTransitioningfromFlight || IsHoldingThFlag()) return;
 	if (Combat && !bElimmed)
 	{
 		Combat->FireButtonPressed(true);
+	}
+}
+void APSCharacter::DropFlag()
+{
+	if (Combat->TheFlag)
+	{
+		Combat->DropFlag();
+		Combat->bHoldingTheFlag = false;
+	}
+	ServerDropFlag();
+}
+
+void APSCharacter::ServerDropFlag_Implementation()
+{
+	
+	if (Combat)
+	{
+		Combat->DropFlag();
+		Combat->bHoldingTheFlag = false;
 	}
 }
 
@@ -776,12 +888,20 @@ void APSCharacter::PlayFireMontage(bool bAiming)
 	if (Combat == nullptr || Combat->EquippedWeapon == nullptr) return;
 
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	UAnimInstance* FPSAnimInstance = GetFPSMesh()->GetAnimInstance();
 	if (AnimInstance && FireWeaponMontage)
 	{
 		AnimInstance->Montage_Play(FireWeaponMontage);
 		FName SectionName;
 		SectionName = bAiming ? FName("RifleAim") : FName("RifleHip");
 		AnimInstance->Montage_JumpToSection(SectionName);
+	}
+	if (FPSAnimInstance && FireWeaponMontage)
+	{
+		FPSAnimInstance->Montage_Play(FireWeaponMontage);
+		FName SectionName;
+		SectionName = bAiming ? FName("RifleAim") : FName("RifleHip");
+		FPSAnimInstance->Montage_JumpToSection(SectionName);
 	}
 }
 
@@ -790,6 +910,7 @@ void APSCharacter::PlayReloadMontage()
 	if (Combat == nullptr || Combat->EquippedWeapon == nullptr) return;
 
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	UAnimInstance* FPSAnimInstance = GetFPSMesh()->GetAnimInstance();
 	if (AnimInstance && ReloadMontage)
 	{
 		AnimInstance->Montage_Play(ReloadMontage);
@@ -821,6 +942,37 @@ void APSCharacter::PlayReloadMontage()
 		}
 		AnimInstance->Montage_JumpToSection(SectionName);
 	}
+	if (FPSAnimInstance && ReloadMontage)
+	{
+		FPSAnimInstance->Montage_Play(ReloadMontage);
+		FName SectionName;
+		switch (Combat->EquippedWeapon->GetWeaponType())
+		{
+		case EWeaponType::EWT_AssaultRifle:
+			SectionName = FName("Rifle");
+			break;
+		case EWeaponType::EWT_RocketLauncher:
+			SectionName = FName("Rifle");
+			break;
+		case EWeaponType::EWT_Pistol:
+			SectionName = FName("Pistol");
+			break;
+		case EWeaponType::EWT_SubmachineGun:
+			SectionName = FName("Pistol");
+			break;
+		case EWeaponType::EWT_Shotgun:
+			SectionName = FName("Rifle");
+			break;
+		case EWeaponType::EWT_SniperRifle:
+			SectionName = FName("Rifle");
+			break;
+		case EWeaponType::EWT_GrenadeLauncher:
+			SectionName = FName("Rifle");
+			break;
+
+		}
+		FPSAnimInstance->Montage_JumpToSection(SectionName);
+	}
 }
 
 void APSCharacter::PlayThrowGrenadeMontage()
@@ -828,8 +980,12 @@ void APSCharacter::PlayThrowGrenadeMontage()
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	if (AnimInstance && ThrowGrenadeMontage)
 	{
-		AnimInstance->Montage_Play(ThrowGrenadeMontage);
-		
+		AnimInstance->Montage_Play(ThrowGrenadeMontage);		
+	}
+	UAnimInstance* FPSAnimInstance = GetFPSMesh()->GetAnimInstance();
+	if (FPSAnimInstance && ThrowGrenadeMontage)
+	{
+		FPSAnimInstance->Montage_Play(ThrowGrenadeMontage);
 	}
 }
 
@@ -853,9 +1009,15 @@ void APSCharacter::PlayHitReactMontage()
 void APSCharacter::PlaySwapMontage()
 {
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	UAnimInstance* FPSAnimInstance = GetFPSMesh()->GetAnimInstance();
 	if (AnimInstance && SwapMontage)
 	{
 		AnimInstance->Montage_Play(SwapMontage);
+	}
+	if (FPSAnimInstance && SwapMontage)
+	{
+		FPSAnimInstance->Montage_Play(SwapMontage);
+		
 	}
 }
 
@@ -968,7 +1130,7 @@ void APSCharacter::RecieveDamage(AActor* DamagedActor, float Damage, const UDama
 			PSPlayerController = PSPlayerController == nullptr ? Cast<APSPlayerController>(Controller) : PSPlayerController;
 			AttackerController = Cast<APSPlayerController>(InstigatorController);
 			PSGameMode->PlayerEliminated(this, PSPlayerController, AttackerController);	
-			if (AttackerController->PSCharacter)
+			if (AttackerController && AttackerController->PSCharacter)
 			{
 				AttackerController->PSCharacter->PlayKillSound();
 			}
@@ -998,10 +1160,14 @@ void APSCharacter::Elim(bool bPlayerLeftGame)
 		{
 			Combat->MountedWeapon->Destroy();
 		}
+		if (Combat->TheFlag)
+		{
+			Combat->TheFlag->Dropped();
+		}
 		
 	}
 	MulticastElim(bPlayerLeftGame);
-	
+	WasElimmed();
 }
 
 void APSCharacter::PlayKillSound_Implementation()
@@ -1046,6 +1212,7 @@ void APSCharacter::ServerLeaveGame_Implementation()
 void APSCharacter::MulticastElim_Implementation(bool bPlayerLeftGame)
 {		
 	bLeftGame = bPlayerLeftGame;
+	WasElimmed();
 	if (Material)
 	{		
 		//DynamicDissolveMaterialInstance = UMaterialInstanceDynamic::Create(DissolveMaterialInstance, this);
@@ -1151,6 +1318,7 @@ void APSCharacter::ReloadButtonPressed()
 {
 	if (Combat && Combat->CombatState == ECombatState::ECS_Unoccupied && !bIsFlying)
 	{
+		if (Combat->bHoldingTheFlag) return;
 		if (OverlappingWeapon)
 		{
 			EquippingWeapon = true;
@@ -1172,7 +1340,7 @@ void APSCharacter::ReloadButtonPressed()
 void APSCharacter::EquipTimerFinished()
 {
 	if (Combat && Combat->CombatState == ECombatState::ECS_Unoccupied && !bIsFlying)
-	{
+	{		
 		EquippingWeapon = false;
 		ServerEquipButtonPressed(true);
 	}
@@ -1209,7 +1377,7 @@ ECombatState APSCharacter::GetCombatState() const
 
 void APSCharacter::GrenadeButtonPressed()
 {
-	if (Combat && !bIsFlying)
+	if (Combat && !bIsFlying && !IsHoldingThFlag())
 	{
 		Combat->ThrowGrenade();
 	}
@@ -1231,4 +1399,27 @@ bool APSCharacter::IsLocallyReloading()
 {
 	if (Combat == nullptr) return false;
 	return Combat->bLocallyReloading;
+}
+
+bool APSCharacter::IsHoldingThFlag() const
+{
+	if (Combat == nullptr) return false;
+	return Combat->bHoldingTheFlag;
+}
+
+void APSCharacter::SetHoldingTheFalg(bool bHolding)
+{
+	if (Combat == nullptr) return;
+
+	Combat->bHoldingTheFlag = bHolding;
+}	
+
+ETeam APSCharacter::GetTeam()
+{
+	PSPlayerState = PSPlayerState == nullptr ? GetPlayerState<APSPlayerState>() : PSPlayerState;
+	if (PSPlayerState == nullptr) return ETeam::ET_NoTeam;
+	{
+		return PSPlayerState->GetTeam();
+	}
+
 }

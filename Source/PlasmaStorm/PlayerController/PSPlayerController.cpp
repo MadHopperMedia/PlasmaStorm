@@ -13,10 +13,12 @@
 #include "PlasmaStorm/GameState/PSGameState.h"
 #include "PlasmaStorm/PlayerState/PSPlayerState.h"
 #include "PlasmaStorm/PSComponents/CombatComponent.h"
+#include "PlasmaStorm/PSTypes/Announcement.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundCue.h"
 #include "Components/Image.h"
 #include "PlasmaStorm/HUD/PauseMenu.h"
+#include "Sound/SoundCue.h"
 
 
 
@@ -113,21 +115,6 @@ void APSPlayerController::ShowPauseMenu()
 			PauseMenu->MenuTearDown();
 		}
 	}
-
-}
-
-void APSPlayerController::OnRep_ShowTeamScores()
-{
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Blue, FString(TEXT("Init Team Scores")));
-	}
-	if (bShowTeamScores)
-	{
-		InitTeamScores();
-		
-	}
-	
 }
 
 void APSPlayerController::PollInit()
@@ -147,7 +134,7 @@ void APSPlayerController::PollInit()
 				if (bInitializeDefeats)SetHUDDefeats(HUDDefeats);
 				if (bInitializeCarriedAmmo) SetHUDCarriedAmmo(HUDCarriedAmmo);
 				if (bInitializeWeaponAmmo) SetHUDWeaponAmmo(HUDWeaponAmmo);
-				
+				if (bInitializeTeamScores) InitTeamScores();
 				
 
 				PSCharacter = PSCharacter == nullptr ? Cast<APSCharacter>(GetPawn()) : PSCharacter;
@@ -488,7 +475,10 @@ void APSPlayerController::OnRep_MatchState()
 
 void APSPlayerController::HandleMatchHasStarted(bool bTeamsMatch)
 {
-	if(HasAuthority()) bShowTeamScores = bTeamsMatch;
+	if (HasAuthority())
+	{
+		bShowTeamScores = bTeamsMatch;
+	}
 	PSHUD = PSHUD == nullptr ? Cast<APSHud>(GetHUD()) : PSHUD;
 	if (PSHUD)
 	{
@@ -501,8 +491,91 @@ void APSPlayerController::HandleMatchHasStarted(bool bTeamsMatch)
 		if (bTeamsMatch)
 		{
 			InitTeamScores();
-		}		
+		}
+		else
+		{
+			HideTeamScores();
+		}
+		
 	}
+}
+
+void APSPlayerController::HideTeamScores()
+{	
+	PSHUD = PSHUD == nullptr ? Cast<APSHud>(GetHUD()) : PSHUD;
+	if (PSHUD && PSHUD->CharacterOverlay && PSHUD->CharacterOverlay->RedScore && PSHUD->CharacterOverlay->BlueScore && PSHUD->CharacterOverlay->BlueTeamScoreText && PSHUD->CharacterOverlay->RedTeamScoreText)
+	{
+		
+		PSHUD->CharacterOverlay->RedScore->SetText(FText());
+		PSHUD->CharacterOverlay->BlueScore->SetText(FText());
+		PSHUD->CharacterOverlay->RedTeamScoreText->SetText(FText());
+		PSHUD->CharacterOverlay->BlueTeamScoreText->SetText(FText());
+	}
+}
+
+void APSPlayerController::InitTeamScores()
+{
+	
+	PSHUD = PSHUD == nullptr ? Cast<APSHud>(GetHUD()) : PSHUD;
+	if (PSHUD && PSHUD->CharacterOverlay && PSHUD->CharacterOverlay->RedScore && PSHUD->CharacterOverlay->BlueScore && PSHUD->CharacterOverlay->BlueTeamScoreText && PSHUD->CharacterOverlay->RedTeamScoreText)
+	{		
+		FString Zero("0");
+		PSHUD->CharacterOverlay->RedScore->SetText(FText::FromString(Zero));
+		PSHUD->CharacterOverlay->BlueScore->SetText(FText::FromString(Zero));
+		PSHUD->CharacterOverlay->RedTeamScoreText->SetText(FText::FromString("Red Score:"));
+		PSHUD->CharacterOverlay->BlueTeamScoreText->SetText(FText::FromString("Blue Score:"));
+	}
+	else
+	{
+		bInitializeTeamScores = true;
+	}
+}
+
+void APSPlayerController::OnRep_ShowTeamScores()
+{
+	
+	if (bShowTeamScores)
+	{
+		InitTeamScores();		
+	}
+	else
+	{
+		HideTeamScores();
+	}
+}
+
+void APSPlayerController::ClientPlayAnnouncment_Implementation(USoundCue* Sound, float Delay)
+{
+	AnnouncmentSound = Sound;
+	GetWorldTimerManager().SetTimer(
+		PlayAnnouncmentTimer,
+		this,
+		&APSPlayerController::PlayAnnouncment,
+		Delay
+	);
+	
+}
+
+void APSPlayerController::ClientPlayHeadShot_Implementation(USoundCue* Sound)
+{
+	HeadShotSound = Sound;
+	GetWorldTimerManager().SetTimer(
+		PlayHeadShotTimer,
+		this,
+		&APSPlayerController::PlayHeadShot,
+		.2f
+	);
+}
+
+void APSPlayerController::PlayAnnouncment()
+{
+	UGameplayStatics::PlaySound2D(this, AnnouncmentSound, AnnouncmentVolume);
+	
+}
+
+void APSPlayerController::PlayHeadShot()
+{
+	UGameplayStatics::PlaySound2D(this, HeadShotSound, AnnouncmentVolume);
 }
 
 void APSPlayerController::HandleCooldown()
@@ -518,7 +591,7 @@ void APSPlayerController::HandleCooldown()
 		if (PSHUD->Announcement && PSHUD->Announcement->AnnouncementText && PSHUD->Announcement->InfoText)
 		{
 			PSHUD->Announcement->SetVisibility(ESlateVisibility::Visible);
-			FString AnnouncementText("New Match Starts In:");
+			FString AnnouncementText = Announcement::NewMatchStartsIn;
 			PSHUD->Announcement->AnnouncementText->SetText(FText::FromString(AnnouncementText));
 
 			APSGameState* PSGameState = Cast<APSGameState>(UGameplayStatics::GetGameState(this));
@@ -526,66 +599,81 @@ void APSPlayerController::HandleCooldown()
 			if (PSGameState && PSPlayerState)
 			{
 				TArray<APSPlayerState*> TopPlayers = PSGameState->TopScoringPlayers;
-				FString InfoTextString;
-				if (TopPlayers.Num() == 0)
-				{
-					InfoTextString = FString("There Is No Winner");
-				}
-				else if(TopPlayers.Num() == 1 && TopPlayers[0] == PSPlayerState)
-				{
-					InfoTextString = FString("You Are The Winner");
-				}
-				else if (TopPlayers.Num() == 1)
-				{
-					InfoTextString = FString::Printf(TEXT("Winner: \n%s"), *TopPlayers[0]->GetPlayerName());
-				}
-				else if (TopPlayers.Num() > 1)
-				{
-					InfoTextString = FString("Players Tied For The Win:\n");
-					for (auto TiedPlayer : TopPlayers)
-					{
-						InfoTextString.Append(FString::Printf(TEXT("%s\n"), *TiedPlayer->GetPlayerName()));
-					}
-				}
+				FString InfoTextString = bShowTeamScores ? GetTeamsInfoText(PSGameState) : GetInfoText(TopPlayers);				
 
 				PSHUD->Announcement->InfoText->SetText(FText::FromString(InfoTextString));
 			}
-
-			
-
 		}
 	}
 }
 
-void APSPlayerController::HideTeamScores()
+FString APSPlayerController::GetInfoText(const TArray<class APSPlayerState*>& Players)
 {
-	if (GEngine)
+	APSPlayerState* PSPlayerState = GetPlayerState<APSPlayerState>();
+	if (PSPlayerState == nullptr) return FString();
+	FString InfoTextString;
+	if (Players.Num() == 0)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Blue, FString(TEXT("Init Team Scores")));
+		InfoTextString = Announcement::ThereIsNoWinner;
 	}
-	PSHUD = PSHUD == nullptr ? Cast<APSHud>(GetHUD()) : PSHUD;
-	if (PSHUD && PSHUD->CharacterOverlay && PSHUD->CharacterOverlay->RedScore && PSHUD->CharacterOverlay->BlueScore && PSHUD->CharacterOverlay->BlueTeamScoreText && PSHUD->CharacterOverlay->RedTeamScoreText)
+	else if (Players.Num() == 1 && Players[0] == PSPlayerState)
 	{
-		PSHUD->CharacterOverlay->RedScore->SetText(FText());
-		PSHUD->CharacterOverlay->BlueScore->SetText(FText());
-		PSHUD->CharacterOverlay->RedTeamScoreText->SetText(FText());
-		PSHUD->CharacterOverlay->BlueTeamScoreText->SetText(FText());
+		InfoTextString = Announcement::YouAreTheWinner;
 	}
+	else if (Players.Num() == 1)
+	{
+		InfoTextString = FString::Printf(TEXT("Wiener: \n%s"), *Players[0]->GetPlayerName());
+	}
+	else if (Players.Num() > 1)
+	{
+		InfoTextString = Announcement::PlayersTiedForTheWin;
+		InfoTextString.Append(FString("\n"));
+		for (auto TiedPlayer : Players)
+		{
+			InfoTextString.Append(FString::Printf(TEXT("%s\n"), *TiedPlayer->GetPlayerName()));
+		}
+	}
+
+	return InfoTextString;
 }
 
-void APSPlayerController::InitTeamScores()
+FString APSPlayerController::GetTeamsInfoText(class APSGameState* PSGameState)
 {
-	
-	PSHUD = PSHUD == nullptr ? Cast<APSHud>(GetHUD()) : PSHUD;
-	if (PSHUD && PSHUD->CharacterOverlay && PSHUD->CharacterOverlay->RedScore && PSHUD->CharacterOverlay->BlueScore && PSHUD->CharacterOverlay->BlueTeamScoreText && PSHUD->CharacterOverlay->RedTeamScoreText)
+	if (PSGameState == nullptr) return FString();
+	FString InfoTextString;
+
+	const int32 RedTeamScore = PSGameState->RedTeamScore;
+	const int32 BlueTeamScore = PSGameState->BlueTeamScore;
+
+	if (BlueTeamScore == 0 && RedTeamScore == 0)
 	{
-		
-		FString Zero("0");
-		PSHUD->CharacterOverlay->RedScore->SetText(FText::FromString(Zero));
-		PSHUD->CharacterOverlay->BlueScore->SetText(FText::FromString(Zero));
-		PSHUD->CharacterOverlay->RedTeamScoreText->SetText(FText::FromString("Red Score:"));
-		PSHUD->CharacterOverlay->BlueTeamScoreText->SetText(FText::FromString("Blue Score:"));
+		InfoTextString = Announcement::ThereIsNoWinner;
 	}
+	else if (BlueTeamScore == RedTeamScore)
+	{
+		InfoTextString = FString::Printf(TEXT(" % s\n"), *Announcement::TeamsTiedForTheWin);
+		InfoTextString.Append(Announcement::RedTeam);
+		InfoTextString.Append(TEXT("\n"));
+		InfoTextString.Append(Announcement::BlueTeam);
+		InfoTextString.Append(TEXT("\n"));
+	}
+	else if (RedTeamScore > BlueTeamScore)
+	{
+		InfoTextString = Announcement::RedTeamWins;
+		InfoTextString.Append(TEXT("\n"));
+		InfoTextString.Append(FString::Printf(TEXT("%s: %d\n"), *Announcement::RedTeam, RedTeamScore));
+		InfoTextString.Append(FString::Printf(TEXT("%s: %d\n"), *Announcement::BlueTeam, BlueTeamScore));
+	}
+	else if (BlueTeamScore > RedTeamScore)
+	{
+		InfoTextString = Announcement::BlueTeamWins;
+		InfoTextString.Append(TEXT("\n"));
+		InfoTextString.Append(FString::Printf(TEXT("%s: %d\n"), *Announcement::BlueTeam, BlueTeamScore));
+		InfoTextString.Append(FString::Printf(TEXT("%s: %d\n"), *Announcement::RedTeam, RedTeamScore));
+		
+	}
+
+	return InfoTextString;
 }
 
 void APSPlayerController::SetHUDRedTeamScore(int32 RedScore)
@@ -607,9 +695,9 @@ void APSPlayerController::SetHUDBlueTeamScore(int32 BlueScore)
 	{
 		FString ScoreText = FString::Printf(TEXT("%d"), BlueScore);
 		PSHUD->CharacterOverlay->BlueScore->SetText(FText::FromString(ScoreText));
-
 	}	
 }
+
 
 void APSPlayerController::SetInverted(bool Inverted)
 {
@@ -629,6 +717,17 @@ void APSPlayerController::SetToggleBoost(bool ToggleBoost)
 	if (PSCharacter)
 	{
 		PSCharacter->SetToggleBoost(ToggleBoost);
+	}
+		
+}
+
+void APSPlayerController::SetFPS(bool bFPS)
+{
+	bUseFPS = bFPS;
+	PSCharacter = PSCharacter == nullptr ? Cast<APSCharacter>(GetPawn()) : PSCharacter;
+	if (PSCharacter)
+	{
+		PSCharacter->SetUseFirstPerson(bUseFPS);
 	}
 		
 }

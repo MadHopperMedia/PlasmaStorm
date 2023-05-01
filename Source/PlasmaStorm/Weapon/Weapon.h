@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "WeaponTypes.h"
+#include "PlasmaStorm/PSTypes/Team.h"
 #include "Weapon.generated.h"
 
 UENUM(BlueprintType)
@@ -44,7 +45,7 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void OnRep_Owner() override;
 	virtual void Fire(const FVector& HitTarget);
-	void Dropped();
+	virtual void Dropped();
 	void SetHUDAmmo();
 	void AddAmmo(int32 AmmoToAdd);
 
@@ -71,10 +72,14 @@ public:
 	class USoundCue* EquipSound;
 
 	UPROPERTY(EditAnywhere)
-	class USoundCue* ZoomSound;
+	USoundCue* ZoomSound;	
 
 	UPROPERTY(EditAnywhere)
-	class USoundCue* UnZoomSound;
+	USoundCue* UnZoomSound;
+
+	UPROPERTY(EditAnywhere)
+	USoundCue* HeadShotSound;
+
 	UPROPERTY(EditAnywhere)
 	EFireType FireType;
 
@@ -91,6 +96,11 @@ protected:
 	virtual void OnDropped();
 	virtual void OnEquippedSecondary();
 	virtual void OnEquippedMountedWeapon();
+	virtual void DroppedTimerFinished();
+
+	FTimerHandle DroppedTimer;
+	UPROPERTY(EditDefaultsOnly)
+	float DroppedDelay = 20.f;
 	UPROPERTY(EditAnywhere, Category = "Weapon Properties")
 	float WeaponRange = 30000.f;
 	UPROPERTY(EditAnywhere, Category = "Weapon Properties")
@@ -193,15 +203,11 @@ private:
 	// incremented in spend round, decremented in client update ammo.
 	int32 Sequence = 0;
 
-	FTimerHandle DroppedTimer;
-	UPROPERTY(EditDefaultsOnly)
-	float DroppedDelay = 20.f;
-	void DroppedTimerFinished();
-
-
 	UPROPERTY(EditAnywhere)
 	EWeaponType WeaponType;
 	
+	UPROPERTY(EditAnywhere)
+	ETeam Team;
 	
 
 public:	
@@ -226,4 +232,6 @@ public:
 	FORCEINLINE FName GetWeaponName() const { return WeaponName; }
 	FORCEINLINE float GetDamage() const { return Damage; }
 	FORCEINLINE float GetHeadshotDamage() const { return HeadShotDamage; }
+	FORCEINLINE ETeam GetTeam() const { return Team; }
+	FORCEINLINE void SetTeam(ETeam NewTeam) { Team = NewTeam; }
 };

@@ -24,10 +24,11 @@ AWeapon::AWeapon()
 
 	WeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WeaponMesh"));	
 	SetRootComponent(WeaponMesh);
-
+	WeaponMesh->bOwnerNoSee = true;
 	WeaponMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Block);
 	WeaponMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Ignore);
 	WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	
 
 	AreaSphere = CreateDefaultSubobject<USphereComponent>(TEXT("AreaSphere"));
 	AreaSphere->SetupAttachment(RootComponent);
@@ -194,8 +195,10 @@ void AWeapon::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* 
 	APSCharacter* PSCharacter = Cast<APSCharacter>(OtherActor);
 	if (PSCharacter)
 	{	
+		if (PSCharacter->IsHoldingThFlag()) return;
 		if (PSCharacter->GetEquippedWeapons() && PSCharacter->GetEquippedWeapons()->GetWeaponName() != WeaponName && PSCharacter->GetSecondaryWeapons() && PSCharacter->GetSecondaryWeapons()->GetWeaponName() != WeaponName && PSCharacter->GetMountedWeapons() && PSCharacter->GetMountedWeapons()->GetWeaponName() != WeaponName)
 		{
+			if (WeaponType == EWeaponType::EWT_Flag && PSCharacter->GetTeam() == Team) return;
 			PSCharacter->SetOverlappingWeapon(this);
 		}		
 	}
@@ -206,6 +209,8 @@ void AWeapon::OnSphereEndOverlap(UPrimitiveComponent* OverlappedComponent, AActo
 	APSCharacter* PSCharacter = Cast<APSCharacter>(OtherActor);
 	if (PSCharacter && GetOwner() == false)
 	{
+		if (PSCharacter->IsHoldingThFlag()) return;
+		if (WeaponType == EWeaponType::EWT_Flag && PSCharacter->GetTeam() == Team) return;
 		PSCharacter->SetOverlappingWeapon(nullptr);
 	}
 }
