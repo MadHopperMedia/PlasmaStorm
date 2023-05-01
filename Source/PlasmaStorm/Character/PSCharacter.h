@@ -122,6 +122,13 @@ public:
 	bool bFinishedSwapping = true;
 
 	FOnLeftGame OnLeftGame;
+
+	/**
+	* First person components
+	*/
+
+	UPROPERTY(EditAnywhere)	
+	class USkeletalMeshComponent* FPSMesh;
 protected:
 
 	void ForwardMovement(float Val);
@@ -367,9 +374,15 @@ private:
 
 	UPROPERTY()
 	APSCharacter* TargetCharacter;
+
+	bool bFPSView;
+	UPROPERTY(EditAnywhere)
+	float FPSCameraThreshold = 30.f;
 	
+	bool bUseFirstPerson = false;
 
 public:
+	UPROPERTY(BlueprintReadWrite)
 	bool bIsCrouching;
 	void SetOverlappingWeapon(AWeapon* Weapon);
 	bool IsWeaponEquipped();
@@ -408,6 +421,7 @@ public:
 	FORCEINLINE void SetToggleBoost(bool ToggleBoost) { bToggleBoost = ToggleBoost; }
 	FORCEINLINE bool GetIsBoosting() { return bIsBoosting; }
 	FORCEINLINE bool GetbIsAccelerating() { return bIsAccelerating; }
+	FORCEINLINE bool GetFPSView() const { return bFPSView; }
 	FORCEINLINE void AddRecoilOnFire(float RecoilAmount) { PlayerPitch(RecoilAmount); }
 	UFUNCTION(BlueprintCallable)
 	bool GetIsFlying() { return bIsFlying; }
@@ -424,7 +438,13 @@ public:
 	FORCEINLINE ULagCompensationComponent* GetLagCompensation() const { return LagCompensation; }
 	UFUNCTION(BlueprintCallable)
 	AWeapon* GetMountedWeapon();
+	UFUNCTION(BlueprintCallable)
 	bool IsHoldingThFlag() const;
 	ETeam GetTeam();
 	void SetHoldingTheFalg(bool bHolding);
+	FORCEINLINE USkeletalMeshComponent* GetFPSMesh() const { return FPSMesh; }
+	UFUNCTION(BlueprintCallable)
+	FORCEINLINE bool GetUseFPS() const { return bUseFirstPerson; }
+	UFUNCTION(BlueprintCallable)
+	FORCEINLINE void SetUseFirstPerson(bool bUseFPS) { bUseFirstPerson = bUseFPS; }
 };

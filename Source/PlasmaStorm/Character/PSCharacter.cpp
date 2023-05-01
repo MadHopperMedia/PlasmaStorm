@@ -25,6 +25,8 @@
 #include "PlasmaStorm/PlayerStart/TeamPlayerStart.h"
 #include "Components/SceneComponent.h"
 #include "Components/BoxComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Engine/SkeletalMeshSocket.h"
 
 
 APSCharacter::APSCharacter()
@@ -35,8 +37,11 @@ APSCharacter::APSCharacter()
 	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
 	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
 
-	Target = CreateDefaultSubobject<USceneComponent>(TEXT("TargetPoint"));
-	Target->SetupAttachment(GetMesh());
+	FPSMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FPSMesh"));
+	FPSMesh->SetupAttachment(GetFollowCamera());
+	FPSMesh->bOnlyOwnerSee = true;
+	FPSMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	FPSMesh->SetVisibility(false);
 
 	OverheadWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("OverheadWidget"));
 	OverheadWidget->SetupAttachment(RootComponent);
@@ -280,8 +285,7 @@ void APSCharacter::PollInit()
 			UpdateHUDStamina();
 			bInverted = PSPlayerController->bInverted;
 			bToggleBoost = PSPlayerController->bToggleBoost;
-			
-			
+			bUseFirstPerson = PSPlayerController->bUseFPS;			
 		}
 	}
 	
@@ -333,34 +337,53 @@ void APSCharacter::SetSpawnPoint()
 
 void APSCharacter::HideCharacterIfCharacterClose()
 {
-	bool bFPSView = (FollowCamera->GetComponentLocation() - GetActorLocation()).Size() < CameraThreshold;
-	if (!IsLocallyControlled() || Combat == nullptr) return;
-	if (bFPSView)
+	bFPSView = (FollowCamera->GetComponentLocation() - GetActorLocation()).Size() < FPSCameraThreshold;
+	if ( Combat == nullptr) return;
+	if (bFPSView && IsLocallyControlled())
 	{
 		GetMesh()->SetVisibility(false);
+		GetFPSMesh()->SetVisibility(true);
 		if (Combat->EquippedWeapon && Combat->EquippedWeapon->GetWeaponMesh())
 		{
-			Combat->EquippedWeapon->GetWeaponMesh()->bOwnerNoSee = true;
+			const USkeletalMeshSocket* FPS_Socket = GetFPSMesh()->GetSocketByName(FName("FPS_Socket"));
+			bool bUseFirstPersonMesh = IsLocallyControlled();
+			if (FPS_Socket && bUseFirstPersonMesh && !IsElimmed() && Combat->CombatState == ECombatState::ECS_Unoccupied)
+			{
+				FPS_Socket->AttachActor(Combat->EquippedWeapon, GetFPSMesh());
+			}
 		}
-		if (Combat->MountedWeapon && Combat->MountedWeapon->GetWeaponMesh())
-		{
-			Combat->MountedWeapon->GetWeaponMesh()->bOwnerNoSee = true;
-		}
+		if (Combat->MountedWeapon && Combat->MountedWeapon->GetWeaponMesh() && Combat->MountedWeapon->GetWeaponMesh()->bOwnerNoSee == false)
+		{			
+			Combat->MountedWeapon->GetWeaponMesh()->bOwnerNoSee = true;			
+		}		
 	}
-	else
-	{
-		GetMesh()->SetVisibility(true);
+	else 
+	{		
+		GetFPSMesh()->SetVisibility(false);
+		if ((FollowCamera->GetComponentLocation() - GetActorLocation()).Size() > CameraThreshold)
+		{
+			GetMesh()->SetVisibility(true);
+			if (Combat && Combat->MountedWeapon && Combat->MountedWeapon->GetWeaponMesh())
+			{
+				Combat->MountedWeapon->GetWeaponMesh()->bOwnerNoSee = false;
+				
+			}
+		}
 		if (Combat && Combat->EquippedWeapon && Combat->EquippedWeapon->GetWeaponMesh())
-		{
-			Combat->EquippedWeapon->GetWeaponMesh()->bOwnerNoSee = false;
-		}
-		if (Combat && Combat->MountedWeapon && Combat->MountedWeapon->GetWeaponMesh())
-		{
-			Combat->MountedWeapon->GetWeaponMesh()->bOwnerNoSee = false;
-		}
-		
+		{			
+			const USkeletalMeshSocket* HandSocket = GetMesh()->GetSocketByName(FName("RightHandSocket"));
+			bool bUseFirstPersonMesh = IsLocallyControlled();
+			if (HandSocket && bUseFirstPersonMesh || !bUseFirstPersonMesh)
+			{
+				if (IsElimmed() || Combat->CombatState != ECombatState::ECS_Unoccupied) return;
+				HandSocket->AttachActor(Combat->EquippedWeapon, GetMesh());
+			}
+		}		
 	}
-	
+	if (bIsFlying || IsHoldingThFlag())
+	{
+		GetFPSMesh()->SetVisibility(false);
+	}	
 }
 
 void APSCharacter::ForwardMovement(float Val)
@@ -418,14 +441,20 @@ void APSCharacter::SetTeamColor(ETeam Team)
 	case ETeam::ET_NoTeam:
 		GetMesh()->SetMaterial(0, Material);
 		GetMesh()->SetMaterial(1, Material1);
+		GetFPSMesh()->SetMaterial(0, Material);
+		GetFPSMesh()->SetMaterial(1, Material1);
 		break;
 	case ETeam::ET_RedTeam:
 		GetMesh()->SetMaterial(0, RedMaterial);
 		GetMesh()->SetMaterial(1, RedMaterial1);
+		GetFPSMesh()->SetMaterial(0, RedMaterial);
+		GetFPSMesh()->SetMaterial(1, RedMaterial1);
 		break;
 	case ETeam::ET_BlueTeam:
 		GetMesh()->SetMaterial(0, BlueMaterial);
 		GetMesh()->SetMaterial(1, BlueMaterial1);
+		GetFPSMesh()->SetMaterial(0, BlueMaterial);
+		GetFPSMesh()->SetMaterial(1, BlueMaterial1);
 		break;
 	}
 }
@@ -789,12 +818,14 @@ void APSCharacter::SpawnDefaultWeapon()
 {
 	APSGameMode* PSGameMode = Cast<APSGameMode>(UGameplayStatics::GetGameMode(this));
 	UWorld* World = GetWorld();
-	if (PSGameMode && World && DefaultWeaponClass && !bElimmed)	{		
+	if (PSGameMode && World && DefaultWeaponClass && !bElimmed)	
+	{		
 
 		AWeapon* StartingWeapon = World->SpawnActor<AWeapon>(DefaultWeaponClass);
 		if (Combat)
 		{
 			Combat->EquipWeapon(StartingWeapon);
+			//StartingWeapon->GetWeaponMesh()->SetVisibility(false);
 		}
 		
 		if (DefaultSecondaryWeaponClass)
@@ -857,12 +888,20 @@ void APSCharacter::PlayFireMontage(bool bAiming)
 	if (Combat == nullptr || Combat->EquippedWeapon == nullptr) return;
 
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	UAnimInstance* FPSAnimInstance = GetFPSMesh()->GetAnimInstance();
 	if (AnimInstance && FireWeaponMontage)
 	{
 		AnimInstance->Montage_Play(FireWeaponMontage);
 		FName SectionName;
 		SectionName = bAiming ? FName("RifleAim") : FName("RifleHip");
 		AnimInstance->Montage_JumpToSection(SectionName);
+	}
+	if (FPSAnimInstance && FireWeaponMontage)
+	{
+		FPSAnimInstance->Montage_Play(FireWeaponMontage);
+		FName SectionName;
+		SectionName = bAiming ? FName("RifleAim") : FName("RifleHip");
+		FPSAnimInstance->Montage_JumpToSection(SectionName);
 	}
 }
 
@@ -871,6 +910,7 @@ void APSCharacter::PlayReloadMontage()
 	if (Combat == nullptr || Combat->EquippedWeapon == nullptr) return;
 
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	UAnimInstance* FPSAnimInstance = GetFPSMesh()->GetAnimInstance();
 	if (AnimInstance && ReloadMontage)
 	{
 		AnimInstance->Montage_Play(ReloadMontage);
@@ -902,6 +942,37 @@ void APSCharacter::PlayReloadMontage()
 		}
 		AnimInstance->Montage_JumpToSection(SectionName);
 	}
+	if (FPSAnimInstance && ReloadMontage)
+	{
+		FPSAnimInstance->Montage_Play(ReloadMontage);
+		FName SectionName;
+		switch (Combat->EquippedWeapon->GetWeaponType())
+		{
+		case EWeaponType::EWT_AssaultRifle:
+			SectionName = FName("Rifle");
+			break;
+		case EWeaponType::EWT_RocketLauncher:
+			SectionName = FName("Rifle");
+			break;
+		case EWeaponType::EWT_Pistol:
+			SectionName = FName("Pistol");
+			break;
+		case EWeaponType::EWT_SubmachineGun:
+			SectionName = FName("Pistol");
+			break;
+		case EWeaponType::EWT_Shotgun:
+			SectionName = FName("Rifle");
+			break;
+		case EWeaponType::EWT_SniperRifle:
+			SectionName = FName("Rifle");
+			break;
+		case EWeaponType::EWT_GrenadeLauncher:
+			SectionName = FName("Rifle");
+			break;
+
+		}
+		FPSAnimInstance->Montage_JumpToSection(SectionName);
+	}
 }
 
 void APSCharacter::PlayThrowGrenadeMontage()
@@ -909,8 +980,12 @@ void APSCharacter::PlayThrowGrenadeMontage()
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	if (AnimInstance && ThrowGrenadeMontage)
 	{
-		AnimInstance->Montage_Play(ThrowGrenadeMontage);
-		
+		AnimInstance->Montage_Play(ThrowGrenadeMontage);		
+	}
+	UAnimInstance* FPSAnimInstance = GetFPSMesh()->GetAnimInstance();
+	if (FPSAnimInstance && ThrowGrenadeMontage)
+	{
+		FPSAnimInstance->Montage_Play(ThrowGrenadeMontage);
 	}
 }
 
@@ -934,9 +1009,15 @@ void APSCharacter::PlayHitReactMontage()
 void APSCharacter::PlaySwapMontage()
 {
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	UAnimInstance* FPSAnimInstance = GetFPSMesh()->GetAnimInstance();
 	if (AnimInstance && SwapMontage)
 	{
 		AnimInstance->Montage_Play(SwapMontage);
+	}
+	if (FPSAnimInstance && SwapMontage)
+	{
+		FPSAnimInstance->Montage_Play(SwapMontage);
+		
 	}
 }
 
@@ -1049,7 +1130,7 @@ void APSCharacter::RecieveDamage(AActor* DamagedActor, float Damage, const UDama
 			PSPlayerController = PSPlayerController == nullptr ? Cast<APSPlayerController>(Controller) : PSPlayerController;
 			AttackerController = Cast<APSPlayerController>(InstigatorController);
 			PSGameMode->PlayerEliminated(this, PSPlayerController, AttackerController);	
-			if (AttackerController->PSCharacter)
+			if (AttackerController && AttackerController->PSCharacter)
 			{
 				AttackerController->PSCharacter->PlayKillSound();
 			}
@@ -1331,9 +1412,7 @@ void APSCharacter::SetHoldingTheFalg(bool bHolding)
 	if (Combat == nullptr) return;
 
 	Combat->bHoldingTheFlag = bHolding;
-}
-	
-	
+}	
 
 ETeam APSCharacter::GetTeam()
 {

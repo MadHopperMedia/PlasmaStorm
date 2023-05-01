@@ -82,10 +82,13 @@ void UPSCharacterAnimInstance::NativeUpdateAnimation(float DeltaTime)
 	}
 
 	bUseFABRIK = PSCharacter->GetCombatState() == ECombatState::ECS_Unoccupied;
-	bool bFABRIKOverride = PSCharacter->IsLocallyControlled() && 
-		PSCharacter->GetCombatState() == ECombatState::ECS_ThrowingGrenade;
+	bool bFABRIKOverride = PSCharacter->GetCombatState() == ECombatState::ECS_ThrowingGrenade;
 	if (bFABRIKOverride && !bHoldingTheFlag)
 	{
-		bUseFABRIK = !PSCharacter->IsLocallyReloading() && PSCharacter->bFinishedSwapping;
+		//bUseFABRIK = !PSCharacter->IsLocallyReloading() && PSCharacter->bFinishedSwapping;
+	}
+	if (PSCharacter->IsLocallyControlled() && PSCharacter->GetFPSView())
+	{
+		//bUseFABRIK = false;
 	}
 }

@@ -296,14 +296,16 @@ void UCombatComponent::AttachActorToRightHand(AActor* ActorToAttach)
 	if (Character == nullptr || Character->GetMesh() == nullptr || ActorToAttach == nullptr) return;
 
 	const USkeletalMeshSocket* HandSocket = Character->GetMesh()->GetSocketByName(FName("RightHandSocket"));
-	const USkeletalMeshSocket* FPS_Socket = Character->GetMesh()->GetSocketByName(FName("FPS_Socket"));
+	const USkeletalMeshSocket* FPS_Socket = Character->GetFPSMesh()->GetSocketByName(FName("FPS_Socket"));
 	bool bUseFirstPersonMesh = Character->IsLocallyControlled();
-	if (bUseFirstPersonMesh && FPS_Socket)
+	if (FPS_Socket && bUseFirstPersonMesh)
 	{
-		//FPS_Socket->AttachActor(ActorToAttach, Character->GetMesh());
+		FPS_Socket->AttachActor(ActorToAttach, Character->GetFPSMesh());		
 	}
-	
-	HandSocket->AttachActor(ActorToAttach, Character->GetMesh());
+	else if (!bUseFirstPersonMesh && HandSocket)
+	{
+		HandSocket->AttachActor(ActorToAttach, Character->GetMesh());
+	}	
 }
 
 void UCombatComponent::AttachActorToLeftHand(AActor* ActorToAttach)

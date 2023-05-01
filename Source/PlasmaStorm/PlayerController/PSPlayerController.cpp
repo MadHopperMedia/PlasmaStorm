@@ -699,7 +699,6 @@ void APSPlayerController::SetHUDBlueTeamScore(int32 BlueScore)
 }
 
 
-
 void APSPlayerController::SetInverted(bool Inverted)
 {
 	bInverted = Inverted;
@@ -718,6 +717,17 @@ void APSPlayerController::SetToggleBoost(bool ToggleBoost)
 	if (PSCharacter)
 	{
 		PSCharacter->SetToggleBoost(ToggleBoost);
+	}
+		
+}
+
+void APSPlayerController::SetFPS(bool bFPS)
+{
+	bUseFPS = bFPS;
+	PSCharacter = PSCharacter == nullptr ? Cast<APSCharacter>(GetPawn()) : PSCharacter;
+	if (PSCharacter)
+	{
+		PSCharacter->SetUseFirstPerson(bUseFPS);
 	}
 		
 }

@@ -96,6 +96,8 @@ protected:
 	void SetInverted(bool Inverted);
 	UFUNCTION(BlueprintCallable)
 	void SetToggleBoost(bool ToggleBoost);
+	UFUNCTION(BlueprintCallable)
+	void SetFPS(bool bFPS);
 
 	void HighPingWarning();
 	void StopHighPingWarning();
@@ -195,6 +197,8 @@ public:
 	bool bInverted = false;
 	UPROPERTY(BlueprintReadWrite)
 	bool bToggleBoost = false;
+	UPROPERTY(BlueprintReadWrite)
+	bool bUseFPS = false;
 	
 	
 	
