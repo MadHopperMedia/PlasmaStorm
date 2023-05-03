@@ -103,6 +103,7 @@ protected:
 	void StopHighPingWarning();
 	void CheckPing(float DeltaTime);
 
+	UFUNCTION(BlueprintCallable)
 	void ShowPauseMenu();
 
 	UPROPERTY(ReplicatedUsing = OnRep_ShowTeamScores)
@@ -191,6 +192,8 @@ private:
 
 	void PlayAnnouncment();
 	void PlayHeadShot();
+
+	
 	
 public:
 	UPROPERTY(BlueprintReadWrite)
@@ -199,6 +202,9 @@ public:
 	bool bToggleBoost = false;
 	UPROPERTY(BlueprintReadWrite)
 	bool bUseFPS = false;
+	FORCEINLINE bool GetIsUsingGamePad() const {return bIsGamePad;}
+	UPROPERTY(BlueprintReadWrite)
+	bool bIsGamePad = false;
 	
 	
 	

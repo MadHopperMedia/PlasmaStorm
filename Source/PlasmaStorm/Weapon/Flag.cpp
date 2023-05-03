@@ -52,13 +52,16 @@ void AFlag::SetReturnTimer()
 
 void AFlag::ReturnFlag()
 {
-	
-	FlagMesh->SetSimulatePhysics(false);
-	FlagMesh->SetEnableGravity(false);
-	FlagMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
-	FlagMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	SetActorTransform(OriginalTransform);
-	ReturnDelay = DroppedDelay;
+	if (!HasAuthority()) return;
+	FVector Location = GetOriginalTransform().GetLocation();
+	FRotator Rotation = GetOriginalTransform().Rotator();
+	FActorSpawnParameters SpawnParams;
+	UWorld* World = GetWorld();
+	if (World)
+	{
+		AFlag* NewFlag = World->SpawnActor<AFlag>(FlagClass, Location, Rotation, SpawnParams);
+	}	
+	Destroy();
 }
 
 void AFlag::ServerReturnFlag_Implementation()
@@ -77,7 +80,8 @@ void AFlag::OnEquipped()
 	GetAreaSphere()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	FlagMesh->SetSimulatePhysics(false);
 	FlagMesh->SetEnableGravity(false);	
-	FlagMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	FlagMesh->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	FlagMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
 	FlagMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
 	
 

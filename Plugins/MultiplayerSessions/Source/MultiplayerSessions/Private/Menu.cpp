@@ -24,7 +24,7 @@ void UMenu::MenuSetup(int32 NumberOfPublicConnections, FString TypeOfMatch, FStr
 		{
 			FInputModeUIOnly InputModeData;
 			InputModeData.SetWidgetToFocus(TakeWidget());
-			InputModeData.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+			InputModeData.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);			
 			PlayerController->SetInputMode(InputModeData);
 			PlayerController->SetShowMouseCursor(true);
 		}

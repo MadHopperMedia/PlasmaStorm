@@ -38,6 +38,15 @@ void UFPSAnimInstance::NativeUpdateAnimation(float DeltaTime)
 	bHoldingTheFlag = PSCharacter->IsHoldingThFlag();
 	bIsBoosting = (PSCharacter->GetIsBoosting() && Speed > 100);
 	
+	if (EquippedWeapon && (EquippedWeapon->GetWeaponType() == EWeaponType::EWT_Pistol || EquippedWeapon->GetWeaponType() == EWeaponType::EWT_SubmachineGun))
+	{
+		bUsePistolStance = true;
+	}
+	else
+	{
+		bUsePistolStance = false;
+	}
+
 
 	if (bWeaponEquipped && EquippedWeapon && EquippedWeapon->GetWeaponMesh() && PSCharacter->GetFPSMesh())
 	{

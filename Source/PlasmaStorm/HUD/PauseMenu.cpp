@@ -7,6 +7,7 @@
 #include "MultiplayerSessionsSubsystem.h"
 #include "GameFramework/GameModeBase.h"
 #include "PlasmaStorm/character/PSCharacter.h"
+#include "PlasmaStorm/PlayerController/PSPlayerController.h"
 
 void UPauseMenu::MenuSetup()
 {
@@ -17,13 +18,15 @@ void UPauseMenu::MenuSetup()
 	UWorld* World = GetWorld();
 	if (World)
 	{
-		PlayerController = PlayerController == nullptr ? World->GetFirstPlayerController() : PlayerController;
+		//PlayerController == nullptr ? Cast<APSPlayerController*>(World->GetFirstPlayerController()) : PlayerController;
+		PlayerController = PlayerController == nullptr ? Cast<APSPlayerController>(World->GetFirstPlayerController()) : PlayerController;
 		if (PlayerController)
 		{
-			FInputModeGameAndUI InputModeData;
+			FInputModeUIOnly InputModeData;
 			InputModeData.SetWidgetToFocus(TakeWidget());
 			PlayerController->SetInputMode(InputModeData);
 			PlayerController->SetShowMouseCursor(true);
+			
 		}
 	}
 	if (QuitButton && !QuitButton->OnClicked.IsBound())
@@ -58,7 +61,7 @@ void UPauseMenu::MenuTearDown()
 	UWorld* World = GetWorld();
 	if (World)
 	{
-		PlayerController = PlayerController == nullptr ? World->GetFirstPlayerController() : PlayerController;
+		PlayerController = PlayerController == nullptr ? Cast<APSPlayerController>(World->GetFirstPlayerController()) : PlayerController;
 		if (PlayerController)
 		{
 			FInputModeGameOnly InputModeData;			
@@ -127,7 +130,7 @@ void UPauseMenu::OnDestroySession(bool bWasSuccessful)
 		}
 		else
 		{
-			PlayerController = PlayerController == nullptr ? World->GetFirstPlayerController() : PlayerController;
+			PlayerController = PlayerController == nullptr ? Cast<APSPlayerController>(World->GetFirstPlayerController()) : PlayerController;
 			if (PlayerController)
 			{
 				PlayerController->ClientReturnToMainMenuWithTextReason(FText());

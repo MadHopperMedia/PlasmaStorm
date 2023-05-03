@@ -343,14 +343,18 @@ void APSCharacter::HideCharacterIfCharacterClose()
 	{
 		GetMesh()->SetVisibility(false);
 		GetFPSMesh()->SetVisibility(true);
-		if (Combat->EquippedWeapon && Combat->EquippedWeapon->GetWeaponMesh())
+		if (Combat->EquippedWeapon && Combat->EquippedWeapon->GetWeaponMesh() && Combat->EquippedWeapon->GetWeaponState() != EWeaponState::EWS_Dropped)
 		{
 			const USkeletalMeshSocket* FPS_Socket = GetFPSMesh()->GetSocketByName(FName("FPS_Socket"));
 			bool bUseFirstPersonMesh = IsLocallyControlled();
-			if (FPS_Socket && bUseFirstPersonMesh && !IsElimmed() && Combat->CombatState == ECombatState::ECS_Unoccupied)
+			if (!IsElimmed())
 			{
-				FPS_Socket->AttachActor(Combat->EquippedWeapon, GetFPSMesh());
+				if (FPS_Socket && bUseFirstPersonMesh && Combat->CombatState == ECombatState::ECS_Unoccupied)
+				{
+					FPS_Socket->AttachActor(Combat->EquippedWeapon, GetFPSMesh());
+				}
 			}
+			
 		}
 		if (Combat->MountedWeapon && Combat->MountedWeapon->GetWeaponMesh() && Combat->MountedWeapon->GetWeaponMesh()->bOwnerNoSee == false)
 		{			
@@ -369,15 +373,19 @@ void APSCharacter::HideCharacterIfCharacterClose()
 				
 			}
 		}
-		if (Combat && Combat->EquippedWeapon && Combat->EquippedWeapon->GetWeaponMesh())
+		if (Combat && Combat->EquippedWeapon && Combat->EquippedWeapon->GetWeaponMesh() && Combat->EquippedWeapon->GetWeaponState() != EWeaponState::EWS_Dropped)
 		{			
 			const USkeletalMeshSocket* HandSocket = GetMesh()->GetSocketByName(FName("RightHandSocket"));
 			bool bUseFirstPersonMesh = IsLocallyControlled();
-			if (HandSocket && bUseFirstPersonMesh || !bUseFirstPersonMesh)
+			if (!IsElimmed())
 			{
-				if (IsElimmed() || Combat->CombatState != ECombatState::ECS_Unoccupied) return;
-				HandSocket->AttachActor(Combat->EquippedWeapon, GetMesh());
+				if (HandSocket && bUseFirstPersonMesh || !bUseFirstPersonMesh)
+				{
+					if (Combat->CombatState != ECombatState::ECS_Unoccupied) return;
+					HandSocket->AttachActor(Combat->EquippedWeapon, GetMesh());
+				}
 			}
+			
 		}		
 	}
 	if (bIsFlying || IsHoldingThFlag())
@@ -544,39 +552,17 @@ AWeapon* APSCharacter::GetMountedWeapons()
 
 void APSCharacter::SetOverlappingWeapon(AWeapon* Weapon)
 {
-	if (OverlappingWeapon)
-	{
-		OverlappingWeapon->ShowPickupWidget(false);
-	}
-
-	OverlappingWeapon = Weapon;
-
-	if (IsLocallyControlled())
-	{
-		if (OverlappingWeapon)
-		{
-			OverlappingWeapon->ShowPickupWidget(true);
-		}
-	}
-	
+	OverlappingWeapon = Weapon;	
 }
 
 void APSCharacter::OnRep_OverlappingWeapon(AWeapon* LastWeapon)
 {
-	if (OverlappingWeapon)
-	{
-		OverlappingWeapon->ShowPickupWidget(true);
-	}
-
-	if (LastWeapon)
-	{
-		LastWeapon->ShowPickupWidget(false);
-	}	
+	
 }
 
 void APSCharacter::SwitchWeaponButtonPressed()
 {
-	if (bIsFlying || Combat == nullptr || IsHoldingThFlag()) return;
+	if (bIsFlying || Combat == nullptr || !Combat->EquippedWeapon|| IsHoldingThFlag()) return;
 		ServerSwapWeaponsButtonPressed();
 		if (!HasAuthority() && Combat->CombatState == ECombatState::ECS_Unoccupied)
 		{
@@ -626,7 +612,7 @@ AWeapon* APSCharacter::GetEquippedWeapon()
 
 void APSCharacter::AimButtonPressed()
 {
-	if (Combat && !bIsFlying && !IsHoldingThFlag())
+	if (Combat && !bIsFlying && !IsHoldingThFlag() && Combat->EquippedWeapon && Combat->EquippedWeapon->GetCanZoom())
 	{
 		Combat->SetAiming(true);
 		Combat->PlayEquippedWeaponZoomSound();
@@ -855,6 +841,7 @@ void APSCharacter::FireButtonPressed()
 		Combat->FireButtonPressed(true);
 	}
 }
+
 void APSCharacter::DropFlag()
 {
 	if (Combat->TheFlag)
@@ -898,7 +885,7 @@ void APSCharacter::PlayFireMontage(bool bAiming)
 	}
 	if (FPSAnimInstance && FireWeaponMontage)
 	{
-		FPSAnimInstance->Montage_Play(FireWeaponMontage);
+		//FPSAnimInstance->Montage_Play(FireWeaponMontage);
 		FName SectionName;
 		SectionName = bAiming ? FName("RifleAim") : FName("RifleHip");
 		FPSAnimInstance->Montage_JumpToSection(SectionName);
@@ -1261,8 +1248,7 @@ void APSCharacter::MulticastElim_Implementation(bool bPlayerLeftGame)
 		this,
 		&APSCharacter::ElimTimerFinished,
 		ElimDelay
-	);
-	
+	);	
 	
 }
 

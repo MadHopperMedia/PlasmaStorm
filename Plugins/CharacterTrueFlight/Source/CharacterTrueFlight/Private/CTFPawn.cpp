@@ -37,7 +37,7 @@ ACTFPawn::ACTFPawn()
 	CTFComponent->SetIsReplicated(true);
 
 	SetReplicateMovement(false);
-	CameraBoom->CameraLagSpeed = 50.f;
+	//CameraBoom->CameraLagSpeed = 50.f;
 
 }
  void ACTFPawn::PostInitializeComponents()
@@ -189,7 +189,7 @@ void ACTFPawn::TurnPawnTowardFlightDirection(float DeltaTime)
 		{
 			CurrentMeshLocation = WalkingMeshLocation;			
 		}
-		Mesh->SetRelativeLocation(CurrentMeshLocation);
+		//Mesh->SetRelativeLocation(CurrentMeshLocation);
 		CameraBoom->bEnableCameraRotationLag = false;			
 		CameraBoom->CameraLagSpeed = FMath::FInterpConstantTo(CameraBoom->CameraLagSpeed, 50, DeltaTime, 10);
 		float BoomYLocation = FMath::FInterpTo(CameraBoom->SocketOffset.Y, StartingBoomLocation.Y, DeltaTime, 6);		

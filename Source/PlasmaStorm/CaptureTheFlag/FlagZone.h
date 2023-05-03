@@ -39,8 +39,6 @@ private:
 
 	UPROPERTY(EditAnywhere)
 	class USphereComponent* ZoneSphere;
-	UFUNCTION(Server, Reliable)
-	void ServerReturnFlag(APSCharacter* Character, AFlag* Flag);
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<class AFlag> FlagClass;
 	UFUNCTION(NetMulticast, Reliable)

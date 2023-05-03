@@ -197,6 +197,8 @@ void UCombatComponent::EquipMountedWeapon(class AWeapon* WeaponToEquip)
 	MountedWeapon->SetWeaponState(EWeaponState::EWS_EquippedMountedWeapon);
 	AttachActorMountedSocket(WeaponToEquip);
 	MountedWeapon->SetOwner(Character);
+	MountedWeapon->GetWeaponMesh()->SetOwnerNoSee(Character->GetUseFPS());
+	
 }
 
 void UCombatComponent::OnRep_EquippedWeapon()
@@ -242,6 +244,7 @@ void UCombatComponent::OnRep_MountedWeapon()
 	MountedWeapon->SetWeaponState(EWeaponState::EWS_EquippedMountedWeapon);
 	AttachActorMountedSocket(MountedWeapon);
 	MountedWeapon->SetOwner(Character);
+	MountedWeapon->GetWeaponMesh()->SetOwnerNoSee(Character->GetUseFPS());
 }
 
 void UCombatComponent::DropEquippedWeapon()
@@ -300,12 +303,13 @@ void UCombatComponent::AttachActorToRightHand(AActor* ActorToAttach)
 	bool bUseFirstPersonMesh = Character->IsLocallyControlled();
 	if (FPS_Socket && bUseFirstPersonMesh)
 	{
-		FPS_Socket->AttachActor(ActorToAttach, Character->GetFPSMesh());		
+		FPS_Socket->AttachActor(ActorToAttach, Character->GetFPSMesh());
+		
 	}
 	else if (!bUseFirstPersonMesh && HandSocket)
 	{
 		HandSocket->AttachActor(ActorToAttach, Character->GetMesh());
-	}	
+	}
 }
 
 void UCombatComponent::AttachActorToLeftHand(AActor* ActorToAttach)
@@ -591,8 +595,13 @@ void UCombatComponent::Fire()
 				}
 			}
 			
-		}		
-		Character->AddRecoilOnFire(RecoilAmount);
+		}
+		float RecoilToAdd = RecoilAmount;
+		if (!Character->GetUseFPS())
+		{
+			RecoilToAdd = RecoilAmount * .5f;
+		}
+		Character->AddRecoilOnFire(RecoilToAdd);
 		StartFireTimer();		
 	}
 }
@@ -940,27 +949,38 @@ void UCombatComponent::TraceUnderCrosshairs(float DeltaTime)
 			HitTarget = LineTraceHit.ImpactPoint;
 			if (LineTraceHit.GetActor() && LineTraceHit.GetActor() && LineTraceHit.GetActor() != GetOwner() && LineTraceHit.GetActor()->Implements<UInteractWithCrosshairsInterface>())
 			{
-				HUDPackage.CrosshairsColor = FLinearColor::Red;
-				TargetCharacter = Cast<APSCharacter>(LineTraceHit.GetActor());
-				float Amount = bAiming ? StickyAssistAmountAiming : StickyAssistAmount;
+				APSCharacter* PSCharacter = Cast<APSCharacter>(LineTraceHit.GetActor());
+				if (Character->GetTeam() == ETeam::ET_NoTeam || PSCharacter->GetTeam() != Character->GetTeam())
+				{
+					HUDPackage.CrosshairsColor = HoverOverEnemyColor;
+					TargetCharacter = Cast<APSCharacter>(LineTraceHit.GetActor());
+					float Amount = bAiming ? StickyAssistAmountAiming : StickyAssistAmount;
 
-				Character->GetWorldTimerManager().SetTimer(
-					LostTargetTimer,
-					this,
-					&UCombatComponent::LostTargetTimerFinished,
-					TimeBeforeLosingTarget
-				);
+					Character->GetWorldTimerManager().SetTimer(
+						LostTargetTimer,
+						this,
+						&UCombatComponent::LostTargetTimerFinished,
+						TimeBeforeLosingTarget
+					);
+				}
+				if (PSCharacter->GetTeam() == Character->GetTeam() && Character->GetTeam() != ETeam::ET_NoTeam)
+				{
+					HUDPackage.CrosshairsColor = HoverOverTeamColor;
+				}
+				
 			}
 			else
 			{
-				HUDPackage.CrosshairsColor = FLinearColor::White;
+				HUDPackage.CrosshairsColor = NoTargetColor;
 			}
 			
 		}
 		else
 		{
 		HitTarget = End;
+		HUDPackage.CrosshairsColor = NoTargetColor;
 		}
+		
 
 		/*	TArray<AActor*> ActorsToIgnore;
 		TArray<FHitResult> Hits;
@@ -1004,13 +1024,13 @@ void UCombatComponent::TraceUnderCrosshairs(float DeltaTime)
 
 		if (TargetCharacter != nullptr && !TargetCharacter->IsElimmed())
 		{
-			HUDPackage.CrosshairsColor = FLinearColor::Red;
+			//HUDPackage.CrosshairsColor = FLinearColor::Red;
 			AimAssist(DeltaTime, LineTraceHit);
 		}		
 		else
 		{
 			HitTarget = End;
-			HUDPackage.CrosshairsColor = FLinearColor::White;
+			//HUDPackage.CrosshairsColor = FLinearColor::White;
 		}			
 	}
 	TraceTargetForWeaponRotation = HitTarget;
@@ -1018,7 +1038,7 @@ void UCombatComponent::TraceUnderCrosshairs(float DeltaTime)
 
 void UCombatComponent::AimAssist(float DeltaTime, FHitResult& HitResult)
 {
-	if (TargetCharacter && !TargetCharacter->IsElimmed() && TargetCharacter->Speed.Size() > 10)
+	if (TargetCharacter && !TargetCharacter->IsElimmed()) // && TargetCharacter->Speed.Size() > 10
 	{		
 		float RangeMin = 1000.0f;
 		float RangeMax = WeaponRange;
