@@ -442,6 +442,7 @@ public:
 	bool IsHoldingThFlag() const;
 	ETeam GetTeam();
 	void SetHoldingTheFalg(bool bHolding);
+	UFUNCTION(BlueprintCallable)
 	FORCEINLINE USkeletalMeshComponent* GetFPSMesh() const { return FPSMesh; }
 	UFUNCTION(BlueprintCallable)
 	FORCEINLINE bool GetUseFPS() const { return bUseFirstPerson; }

@@ -161,6 +161,12 @@ private:
 	class APSCharacter* TargetCharacter;
 	float WeaponRange;
 	float DefaultFOV;
+	UPROPERTY(EditAnywhere)
+	FColor HoverOverEnemyColor = FColor::Red;
+	UPROPERTY(EditAnywhere)
+	FColor HoverOverTeamColor = FColor::Green;
+	UPROPERTY(EditAnywhere)
+	FColor NoTargetColor = FColor::White;
 
 	UPROPERTY(EditAnywhere, Category = Combat)
 	float ZoomedFOV = 30.f;

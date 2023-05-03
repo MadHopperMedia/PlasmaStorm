@@ -698,7 +698,6 @@ void APSPlayerController::SetHUDBlueTeamScore(int32 BlueScore)
 	}	
 }
 
-
 void APSPlayerController::SetInverted(bool Inverted)
 {
 	bInverted = Inverted;

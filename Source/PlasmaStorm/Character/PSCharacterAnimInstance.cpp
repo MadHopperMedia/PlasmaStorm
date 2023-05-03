@@ -42,6 +42,7 @@ void UPSCharacterAnimInstance::NativeUpdateAnimation(float DeltaTime)
 	bIsBoosting = (PSCharacter->GetIsBoosting() && Speed > 100);
 	TurningInPlace = PSCharacter->GetTurningInPlace();
 	FlyingRotation = PSCharacter->GetFlyingRotation();
+	bIsFirstPerson = PSCharacter->GetUseFPS();
 
 	// Offset Yaw for Strafing
 	FRotator AimRotation = PSCharacter->GetActorRotation();

@@ -17,9 +17,10 @@ void ATeamsPSGameMode::PostLogin(APlayerController* NewPlayer)
 {
 	
 	Super::PostLogin(NewPlayer);
-	int32 SortingType = FMath::FRandRange(0, 20); 
+	
+	//float SortingType = FMath::FRandRange(0, 20); FMath::Rand()%20;
 
-
+	int32 SortingType = FMath::Rand()%20;
 	APSGameState* PSGameState = Cast<APSGameState>(UGameplayStatics::GetGameState(this));
 	if (PSGameState)
 	{

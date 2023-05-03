@@ -34,13 +34,17 @@ protected:
 	UFUNCTION()
 	void OnStartSession(bool bWasSuccessful);
 
-private:
-
-	UPROPERTY(meta = (BindWidget))
+	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
 	class UButton* HostButton;
 
-	UPROPERTY(meta = (BindWidget))
+	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
 	UButton* JoinButton;
+
+private:
+
+	
+
+	
 
 	UFUNCTION()
 	void HostButtonClicked();
@@ -53,7 +57,7 @@ private:
 	// The subsystem designed to handle all online session functionality
 	class UMultiplayerSessionsSubsystem* MultiplayerSessionsSubsystem;
 
-	int32 NumPublicConnections{4};
+	int32 NumPublicConnections{20};
 	FString MatchType{TEXT("FreeForAll")};
 	FString PathToLobby{TEXT("")};
 };

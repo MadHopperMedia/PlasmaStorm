@@ -39,27 +39,13 @@ void AFlagZone::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor
 			{
 				GameMode->FlagCaptured(OverlappingFlag, this);
 				
-				ServerPlayFlagCaptured();
+				ServerPlayFlagCaptured();				
 				
-				UWorld* World = GetWorld();
-				if (World)
-				{
-					FVector Location = OverlappingFlag->GetOriginalTransform().GetLocation();
-					FRotator Rotation = OverlappingFlag->GetOriginalTransform().Rotator();
-					FActorSpawnParameters SpawnParams;
-					AFlag* NewFlag = World->SpawnActor<AFlag>(FlagClass, Location, Rotation, SpawnParams);
-					
-					
-				}
 				if (FlagBearer)
-				{
-					//OverlappingFlag->SetReturnTimer();
+				{					
 					FlagBearer->DropFlag();
-
-				}
-				OverlappingFlag->Destroy();
-				//OverlappingFlag->ReturnFlag();
-				//ServerReturnFlag(FlagBearer, OverlappingFlag);
+				}				
+				OverlappingFlag->ReturnFlag();				
 			}
 		}
 	}
@@ -79,13 +65,7 @@ void AFlagZone::MulticastPlayFlagCaptured_Implementation()
 	}
 }
 
-void AFlagZone::ServerReturnFlag_Implementation(APSCharacter* Character, AFlag* Flag)
-{
-	if (Flag)
-	{		
-		Flag->ReturnFlag();
-	}
-}
+
 
 
 

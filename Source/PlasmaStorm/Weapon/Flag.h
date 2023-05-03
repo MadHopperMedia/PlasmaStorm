@@ -33,6 +33,8 @@ private:
 		UFUNCTION(Server, Reliable)
 		void ServerReturnFlag();
 		float ReturnDelay = 30.f;
+		UPROPERTY(EditAnywhere)
+		TSubclassOf<class AFlag> FlagClass;
 
 public:
 	FORCEINLINE FTransform GetOriginalTransform() const { return OriginalTransform; }

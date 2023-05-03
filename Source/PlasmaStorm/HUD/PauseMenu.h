@@ -16,6 +16,7 @@ class PLASMASTORM_API UPauseMenu : public UUserWidget
 
 public:
 	void MenuSetup();
+	UFUNCTION(BlueprintCallable)
 	void MenuTearDown();
 
 protected:
@@ -27,11 +28,10 @@ protected:
 
 	UFUNCTION()
 	void OnPlayerLeftGame();
-
-private:
-
-	UPROPERTY(meta = (BindWidget))
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
 	class UButton* QuitButton;
+private:
+		
 	UFUNCTION()
 	void QuitButtonClicked();
 
@@ -39,6 +39,6 @@ private:
 	class UMultiplayerSessionsSubsystem* MultiPlayerSessionsSubsystem;
 
 	UPROPERTY()
-	class APlayerController* PlayerController;
+	class APSPlayerController* PlayerController;
 	
 };

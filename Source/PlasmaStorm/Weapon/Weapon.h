@@ -40,8 +40,7 @@ public:
 	
 	AWeapon();
 	friend class UCombatComponent;
-	virtual void Tick(float DeltaTime) override;
-	void ShowPickupWidget(bool bShowWidget);
+	virtual void Tick(float DeltaTime) override;	
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void OnRep_Owner() override;
 	virtual void Fire(const FVector& HitTarget);
@@ -170,8 +169,6 @@ private:
 	class USphereComponent* AreaSphere;
 	UPROPERTY(ReplicatedUsing = OnRep_WeaponState, VisibleAnywhere, Category = "Weapon Properties")
 	EWeaponState WeaponState;
-	UPROPERTY(VisibleAnywhere, Category = "Weapon Properties")
-	class UWidgetComponent* PickupWidget;
 	UPROPERTY(EditAnywhere, Category = "Weapon Properties")
 	class UAnimationAsset* FireAnimation;
 	UFUNCTION()
@@ -184,6 +181,8 @@ private:
 	float ZoomInterpSpeed = 20.f;
 	UPROPERTY(EditAnywhere, Category = "Weapon Properties")
 	float Recoil = 0.5f;
+	UPROPERTY(EditAnywhere, Category = "Weapon Properties")
+	bool bCanZoom = true;
 	
 	UPROPERTY(EditAnywhere, Category = "Weapon Properties")
 	int32 Ammo;	
@@ -212,6 +211,7 @@ private:
 
 public:	
 	void SetWeaponState(EWeaponState State);
+	FORCEINLINE EWeaponState GetWeaponState()const { return WeaponState; }
 	FORCEINLINE USphereComponent* GetAreaSphere() const { return AreaSphere; }	
 	UFUNCTION(BlueprintCallable)
 	FORCEINLINE USkeletalMeshComponent* GetWeaponMesh() const { return WeaponMesh; }	
@@ -234,4 +234,5 @@ public:
 	FORCEINLINE float GetHeadshotDamage() const { return HeadShotDamage; }
 	FORCEINLINE ETeam GetTeam() const { return Team; }
 	FORCEINLINE void SetTeam(ETeam NewTeam) { Team = NewTeam; }
+	FORCEINLINE bool GetCanZoom() const { return bCanZoom; }
 };

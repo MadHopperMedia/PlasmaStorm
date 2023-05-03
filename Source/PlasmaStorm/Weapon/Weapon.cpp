@@ -23,8 +23,7 @@ AWeapon::AWeapon()
 	SetReplicateMovement(true);
 
 	WeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WeaponMesh"));	
-	SetRootComponent(WeaponMesh);
-	WeaponMesh->bOwnerNoSee = true;
+	SetRootComponent(WeaponMesh);	
 	WeaponMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Block);
 	WeaponMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Ignore);
 	WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -36,8 +35,7 @@ AWeapon::AWeapon()
 	AreaSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	
-	PickupWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("PickupWidget"));
-	PickupWidget->SetupAttachment(RootComponent);
+	
 
 	
 }
@@ -53,10 +51,7 @@ void AWeapon::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (PickupWidget)
-	{
-		PickupWidget->SetVisibility(false);
-	}
+	
 
 	AreaSphere->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	AreaSphere->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
@@ -108,7 +103,7 @@ void AWeapon::OnPingTooHigh(bool bPingTooHigh)
 
 void AWeapon::OnEquipped()
 {
-	ShowPickupWidget(false);
+	
 	AreaSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	WeaponMesh->SetSimulatePhysics(false);
 	WeaponMesh->SetEnableGravity(false);
@@ -137,7 +132,7 @@ void AWeapon::OnEquipped()
 
 void AWeapon::OnEquippedSecondary()
 {
-	ShowPickupWidget(false);
+	
 	AreaSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	WeaponMesh->SetSimulatePhysics(false);
 	WeaponMesh->SetEnableGravity(false);
@@ -166,7 +161,7 @@ void AWeapon::OnEquippedSecondary()
 
 void AWeapon::OnEquippedMountedWeapon()
 {
-	ShowPickupWidget(false);
+	
 	AreaSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	WeaponMesh->SetSimulatePhysics(false);
 	WeaponMesh->SetEnableGravity(false);
@@ -215,14 +210,6 @@ void AWeapon::OnSphereEndOverlap(UPrimitiveComponent* OverlappedComponent, AActo
 	}
 }
 
-void AWeapon::ShowPickupWidget(bool bShowWidget)
-{
-	if (PickupWidget)
-	{
-		//PickupWidget->SetVisibility(bShowWidget);
-	}
-}
-
 void AWeapon::Fire(const FVector& HitTarget)
 {
 	if (FireAnimation)
@@ -265,7 +252,7 @@ void AWeapon::Dropped()
 		this,
 		&AWeapon::DroppedTimerFinished,
 		DroppedDelay
-	);
+	);	
 }
 
 void AWeapon::DroppedTimerFinished()
@@ -308,7 +295,11 @@ void AWeapon::SetHUDAmmo()
 
 void AWeapon::SpendRound()
 {	
-	Ammo = FMath::Clamp(Ammo - 1, 0, MagCapacity);	
+	Ammo = FMath::Clamp(Ammo - 1, 0, MagCapacity);
+	if (Ammo < 0)
+	{
+		Ammo = 0.f;
+	}
 	SetHUDAmmo();
 	if (HasAuthority())
 	{
@@ -325,7 +316,11 @@ void AWeapon::ClientUpdateAmmo_Implementation(int32 ServerAmmo)
 	if (HasAuthority()) return;
 	Ammo = ServerAmmo;
 	--Sequence;
-	Ammo -= Sequence;
+	Ammo -= FMath::Clamp(Sequence, 0, MagCapacity);
+	if (Ammo < 0)
+	{
+		Ammo = 0.f;
+	}
 	SetHUDAmmo();
 }
 
@@ -334,14 +329,20 @@ void AWeapon::AddAmmo(int32 AmmoToAdd)
 	Ammo = FMath::Clamp(Ammo + AmmoToAdd, 0, MagCapacity);
 	SetHUDAmmo();
 	ClientAddAmmo(AmmoToAdd);
+	
 }
 
 void AWeapon::ClientAddAmmo_Implementation(int32 AmmoToAdd)
 {
 	if (HasAuthority()) return;
 	Ammo = FMath::Clamp(Ammo + AmmoToAdd, 0, MagCapacity);
+	if (Ammo < 0)
+	{
+		Ammo = 0.f;
+	}
 	PSOwnerCharacter = PSOwnerCharacter == nullptr ? Cast<APSCharacter>(GetOwner()) : PSOwnerCharacter;
 	SetHUDAmmo();
+	
 }
 
 void AWeapon::OnRep_Owner()
