@@ -72,8 +72,8 @@ protected:
 	bool bTransitioningfromFlight = false;
 	bool bIsIdeling = true;
 	void SetCanMove(bool bCanMove);
-	
-	
+	bool bCanBoostJump = true;
+	bool bIsSliding = false;
 	
 
 private:	

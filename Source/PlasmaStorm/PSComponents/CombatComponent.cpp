@@ -320,6 +320,8 @@ void UCombatComponent::AttachActorToLeftHand(AActor* ActorToAttach)
 		EquippedWeapon->GetWeaponType() == EWeaponType::EWT_SubmachineGun;
 	FName SocketName = bUsePistolSocket ? FName("PistolSocket") : FName("LeftHandSocket");
 	const USkeletalMeshSocket* HandSocket = Character->GetMesh()->GetSocketByName(SocketName);
+	const USkeletalMeshSocket* FPS_Socket = Character->GetFPSMesh()->GetSocketByName(FName("FPS_Socket"));
+	bool bUseFirstPersonMesh = Character->IsLocallyControlled();
 	if (HandSocket)
 	{
 		HandSocket->AttachActor(ActorToAttach, Character->GetMesh());		
@@ -1050,7 +1052,7 @@ void UCombatComponent::AimAssist(float DeltaTime, FHitResult& HitResult)
 		AimRange = FMath::Clamp(AimRange, 0.2f, 1.f);
 		
 		FRotator AimTargetRotation = UKismetMathLibrary::FindLookAtRotation(Character->GetFollowCamera()->GetComponentLocation(),
-			(TargetCharacter->GetMesh()->GetSocketLocation(FName("spine_05")) + TargetCharacter->GetActorForwardVector() * 10) + TargetCharacter->PlayerVelocity().GetSafeNormal() * 25);
+			(TargetCharacter->GetMesh()->GetSocketLocation(FName("spine_05")) + TargetCharacter->GetActorForwardVector()) + TargetCharacter->PlayerVelocity().GetSafeNormal() * 25);
 		FRotator RotationForPawn = FRotator(Character->GetActorRotation().Pitch, AimTargetRotation.Yaw, Character->GetActorRotation().Roll);
 		FRotator RotationForPitch = FRotator(AimTargetRotation.Pitch, Character->GetCameraBoom()->GetComponentRotation().Yaw, Character->GetCameraBoom()->GetComponentRotation().Roll);
 		AimAssistSpeedPitch = AimAssistSpeedPitch * AimRange;
@@ -1058,18 +1060,18 @@ void UCombatComponent::AimAssist(float DeltaTime, FHitResult& HitResult)
 		//FRotator PawnRotation = FMath::RInterpTo(Character->GetActorRotation(), RotationForPawn, DeltaTime, AimAssistSpeedYaw);
 		FRotator PawnPitch;			
 			
-		FRotator PawnRotation = FMath::Lerp(Character->GetActorRotation(), RotationForPawn, .4);
+		FRotator PawnRotation = FMath::Lerp(Character->GetActorRotation(), RotationForPawn, .5);
 		Character->SetActorRotation(PawnRotation);
 				
 		
 		float DisticeForPitch = FVector(HitResult.ImpactPoint - TargetCharacter->GetMesh()->GetSocketLocation(FName("spine_05"))).Size();
-		/*float PitchDirection = PawnPitch.Pitch - RotationForPitch.Pitch;
-		if (PitchDirection <= 0 && DisticeForPitch > 35 || PitchDirection > 0 && DisticeForPitch > 200)
+		float PitchDirection = PawnPitch.Pitch - RotationForPitch.Pitch;
+		/*if (PitchDirection <= 0 && DisticeForPitch > 35 || PitchDirection > 0 && DisticeForPitch > 200)
 		{
 			
 			
 		}*/
-		//PawnPitch = FMath::Lerp(Character->GetActorRotation(), RotationForPitch, .2);
+		//PawnPitch = FMath::Lerp(Character->GetActorRotation(), RotationForPitch, .1);
 		//Character->GetCameraBoom()->SetWorldRotation(PawnPitch);
 		//Character->PitchFloat = PawnPitch.Pitch;
 		
@@ -1289,7 +1291,7 @@ void UCombatComponent::UpdateHUDGrenades()
 void UCombatComponent::ThrowGrenadeFinished()
 {
 	CombatState = ECombatState::ECS_Unoccupied;
-	AttachActorToRightHand(EquippedWeapon);
+	//AttachActorToRightHand(EquippedWeapon);
 }
 
 void UCombatComponent::ShowAttachedGrenade(bool bShowGrenade)

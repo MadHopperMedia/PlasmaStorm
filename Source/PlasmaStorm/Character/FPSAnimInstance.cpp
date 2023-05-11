@@ -37,6 +37,7 @@ void UFPSAnimInstance::NativeUpdateAnimation(float DeltaTime)
 	bIsIdoling = PSCharacter->GetIsIdoling();
 	bHoldingTheFlag = PSCharacter->IsHoldingThFlag();
 	bIsBoosting = (PSCharacter->GetIsBoosting() && Speed > 100);
+	bIsSliding = PSCharacter->GetIsSliding();
 	
 	if (EquippedWeapon && (EquippedWeapon->GetWeaponType() == EWeaponType::EWT_Pistol || EquippedWeapon->GetWeaponType() == EWeaponType::EWT_SubmachineGun))
 	{

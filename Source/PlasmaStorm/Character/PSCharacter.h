@@ -35,6 +35,7 @@ public:
 	void SetAimWalkSpeed(bool Aiming);
 	void PlayFireMontage(bool bAiming);
 	void PlayThrowGrenadeMontage();
+	void PlayMeleeMontage();
 	void SpawnDefaultWeapon();
 	void PlayReloadMontage();
 	void PlayHitReactMontage();
@@ -186,6 +187,11 @@ private:
 	void ServerEquipButtonPressed(bool IsEquipingWeapon);
 	UFUNCTION(Server, Reliable)
 	void ServerSwapWeaponsButtonPressed();
+	UFUNCTION(Server, Reliable)
+	void ServerPlayMeleeMontage();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void MultiPlayMeleeMontage();
 
 	UFUNCTION(Server, Reliable)
 	void ServerDropFlag();
@@ -248,6 +254,9 @@ private:
 	UAnimMontage* ThrowGrenadeMontage;
 	UPROPERTY(EditAnywhere, Category = Combat)
 	UAnimMontage* SwapMontage;
+
+	UPROPERTY(EditAnywhere, Category = Combat)
+	UAnimMontage* MeleeMontage;
 
 	UPROPERTY(EditAnywhere)
 	float	OverlappingCharacterMultiplier = 1;	
@@ -389,6 +398,10 @@ public:
 	bool IsAiming();
 	UFUNCTION(BlueprintCallable)
 	AWeapon* GetEquippedWeapon();
+	UFUNCTION(BlueprintCallable)
+	void EnableWeaponMeleeHitbox();
+	UFUNCTION(BlueprintCallable)
+	void DisableWeaponMeleeHitbox();
 	FVector GetHitTarget() const;
 	FORCEINLINE float GetAo_Yaw() const { return Ao_Yaw; }
 	FORCEINLINE float GetFlying_PitchOffset() const { return Flying_PitchOffset; }
@@ -446,6 +459,7 @@ public:
 	FORCEINLINE USkeletalMeshComponent* GetFPSMesh() const { return FPSMesh; }
 	UFUNCTION(BlueprintCallable)
 	FORCEINLINE bool GetUseFPS() const { return bUseFirstPerson; }
+	FORCEINLINE bool GetIsSliding() const { return bIsSliding; }
 	UFUNCTION(BlueprintCallable)
 	FORCEINLINE void SetUseFirstPerson(bool bUseFPS) { bUseFirstPerson = bUseFPS; }
 };

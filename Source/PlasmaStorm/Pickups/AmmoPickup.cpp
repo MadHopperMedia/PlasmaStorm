@@ -3,6 +3,7 @@
 
 #include "AmmoPickup.h"
 #include "PlasmaStorm/Character/PSCharacter.h"
+#include "PlasmaStorm/Weapon/Weapon.h"
 #include "PlasmaStorm/PSComponents/CombatComponent.h"
 
 void AAmmoPickup::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -13,20 +14,19 @@ void AAmmoPickup::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AAct
 	if (PSCharacter)
 	{
 		UCombatComponent* Combat = PSCharacter->GetCombat();
+
 		if (Combat)
 		{
-			if (Combat->GetCurrentAmmoAmountForWeapon()[WeaponType] < Combat->GetMaxAmmoForWeapon(WeaponType))
+			bool bHasWeapon = Combat->GetEquippedWeapon() && Combat->GetEquippedWeapon()->GetWeaponType() == WeaponType || Combat->GetSecondaryWeapon() && Combat->GetSecondaryWeapon()->GetWeaponType() == WeaponType;
+			if (bHasWeapon && Combat->GetCurrentAmmoAmountForWeapon()[WeaponType] < Combat->GetMaxAmmoForWeapon(WeaponType))
 			{
-				{					
-					Combat->PickupAmmo(WeaponType, AmmoAmount);
-				}
+				Combat->PickupAmmo(WeaponType, AmmoAmount);
+				Destroy();
 			}
 			else
 			{
 				return;
 			}
-		}
-		
-	}
-	Destroy();
+		}		
+	}	
 }

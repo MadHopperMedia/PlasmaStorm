@@ -67,5 +67,7 @@ private:
 		bool bHoldingTheFlag;
 	UPROPERTY(BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
 	bool bUsePistolStance = true;
+	UPROPERTY(BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
+	bool bIsSliding = false;
 
 };

@@ -46,7 +46,9 @@ public:
 	virtual void Fire(const FVector& HitTarget);
 	virtual void Dropped();
 	void SetHUDAmmo();
-	void AddAmmo(int32 AmmoToAdd);
+	void AddAmmo(int32 AmmoToAdd); 
+	virtual void EnableHitBox();
+	virtual void DisableHitBox();
 
 	UPROPERTY(EditAnywhere, Category = Crosshairs)
 	class UTexture2D* CrosshairsCenter;
@@ -89,6 +91,9 @@ public:
 	float AddedAmmo = 0;
 protected:
 	
+	UPROPERTY(VisibleAnywhere, Category = "Weapon Properties")
+		class UBoxComponent* MeleeHitBox;
+
 	virtual void BeginPlay() override;
 	virtual void OnWeaponStateSet();
 	virtual void OnEquipped();
@@ -96,6 +101,7 @@ protected:
 	virtual void OnEquippedSecondary();
 	virtual void OnEquippedMountedWeapon();
 	virtual void DroppedTimerFinished();
+	
 
 	FTimerHandle DroppedTimer;
 	UPROPERTY(EditDefaultsOnly)
@@ -123,6 +129,23 @@ protected:
 		UPrimitiveComponent* OtherComp,
 		int32 OtherBodyIndex
 	);
+	UFUNCTION()
+	void OnBoxOverlap(
+		UPrimitiveComponent* OverlappedComponent,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex,
+		bool bFromSweep,
+		const FHitResult& SweepResult
+	);
+
+	UFUNCTION()
+	void OnBoxEndOverlap(
+			UPrimitiveComponent* OverlappedComponent,
+			AActor* OtherActor,
+			UPrimitiveComponent* OtherComp,
+			int32 OtherBodyIndex
+		);
 
 	bool bIsAiming = false;
 	UPROPERTY(EditAnywhere)
@@ -161,12 +184,18 @@ protected:
 	UFUNCTION()
 	void RecharageAmmo(float DeltaTime);
 
+	bool bCanMelee = false;
+
+	UPROPERTY(EditAnywhere)
+	USoundCue* MeleeImpactSound;
+
 private:
 
 	UPROPERTY(VisibleAnywhere, Category = "Weapon Properties")
 	USkeletalMeshComponent* WeaponMesh;
 	UPROPERTY(VisibleAnywhere, Category = "Weapon Properties")
 	class USphereComponent* AreaSphere;
+
 	UPROPERTY(ReplicatedUsing = OnRep_WeaponState, VisibleAnywhere, Category = "Weapon Properties")
 	EWeaponState WeaponState;
 	UPROPERTY(EditAnywhere, Category = "Weapon Properties")
@@ -183,6 +212,8 @@ private:
 	float Recoil = 0.5f;
 	UPROPERTY(EditAnywhere, Category = "Weapon Properties")
 	bool bCanZoom = true;
+	UPROPERTY(EditAnywhere, Category = "Weapon Properties")
+	float MeleeDamage = 50.f;
 	
 	UPROPERTY(EditAnywhere, Category = "Weapon Properties")
 	int32 Ammo;	
@@ -207,7 +238,7 @@ private:
 	
 	UPROPERTY(EditAnywhere)
 	ETeam Team;
-	
+	APSCharacter* LastPSCharacter;
 
 public:	
 	void SetWeaponState(EWeaponState State);

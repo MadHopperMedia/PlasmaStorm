@@ -4,6 +4,7 @@
 #include "Flag.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/SphereComponent.h"
+#include "Components/BoxComponent.h"
 
 AFlag::AFlag()
 {
@@ -12,6 +13,7 @@ AFlag::AFlag()
 	FlagMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	SetRootComponent(FlagMesh);
 	GetAreaSphere()->SetupAttachment(FlagMesh);
+	MeleeHitBox->SetupAttachment(RootComponent);
 }
 
 void AFlag::BeginPlay()

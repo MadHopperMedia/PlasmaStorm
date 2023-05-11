@@ -18,6 +18,8 @@ enum class EMovementState : uint8
 	EMS_Flying UMETA(DisplayName = "Flying"),
 	EMS_Crouching UMETA(DisplayName = "Crouching"),
 	EMS_Sprinting UMETA(DisplayName = "Sprinting"),
+	EMS_Sliding UMETA(DisplayName = "Sliding"),
+
 	EMS_Max UMETA(DisplayName = "DefaultMax"),
 };
 
@@ -122,9 +124,13 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 	float GravityMultiplier = 1;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
-	float JumpForce = 500;	
+	float JumpForce = 500;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
-	float TraceCapsuleRadious = 20;	
+	float SlideTime = .4f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+	float TraceCapsuleRadious = 20;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+	float TerminalVelocity = 20;
 	UPROPERTY(BlueprintReadOnly)
 	bool bIsGrounded = true;
 	UPROPERTY(BlueprintReadOnly)
@@ -143,12 +149,16 @@ protected:
 	FRotator OriginialOrientation;
 	bool bCanMove = true;
 	bool bCanFly = true;
-
+	UPROPERTY(BlueprintReadOnly)
+	bool bSliding = false;
 	UPROPERTY(BlueprintReadOnly)
 	FVector AnimationVelocity;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FVector GravityDirection = FVector(0.0f, 0.0f, 1.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FVector LookAtVector = FVector::ZeroVector;
 
 	UPROPERTY(ReplicatedUsing = OnRep_MovementState, BlueprintReadWrite, EditAnywhere, Category = "Movement")	
 	EMovementState MovementState;	
@@ -173,7 +183,11 @@ private:
 	void JumpTimer();
 	void MoveCharacter(float DeltaTime);
 	void CalculateAnimationVelocity(float DeltaTime);
-
+	void JumpEnded();
+	bool bWantsToJump = false;	
+	void BoostJump();
+	bool bBoostJumping = false;
+	bool bCanBoostJump = true;
 	
 	FVector LastPosition;
 	float LastUpdateTime;
@@ -226,7 +240,13 @@ private:
 	void CalculateVelocity(float DeltaTime);
 	FTimerHandle JumpTimerHandle;
 	FTimerHandle EndJumpTimerHandle;
-
+	FTimerHandle BoostJumpTimerHandle;
+	FTimerHandle BoostJumpStopTimerHandle;
+	FTimerHandle SlidingTimerHandle;
+	void StopBoostJump();
+	bool bServerCanDamageFromThrusters = true;
+	
+	void StopSliding();
 	void AddGravity(float DeltaTime);
 	FVector GravityVector = FVector(0.0f, 0.0f, -1.0f);
 
@@ -236,7 +256,7 @@ private:
 	float FixedTimeStep = 0.01;
 	float ElapsedTime;
 	
-	
+	FVector JumpVelocity;
 	
 
 
@@ -248,8 +268,9 @@ public:
 	FORCEINLINE void SetBoosting(bool Boosting) { bIsBoosting = Boosting; }
 	FORCEINLINE float GetMaxSpeed() const { return MaxSpeed; }
 	FORCEINLINE bool SetAiming(bool Aiming) { return bAiming = Aiming; }
-	
-	
+	FORCEINLINE bool GetIsSliding()const { return bSliding; }
+	FORCEINLINE bool SetCanBoostJump(bool bAbleToBoostJump) { return bCanBoostJump = bAbleToBoostJump; }
+	FORCEINLINE void SetLookAtVector(FVector FacingDirection) { LookAtVector = FacingDirection; }
 	
 	
 	
