@@ -289,11 +289,7 @@ void AWeapon::OnBoxOverlap(UPrimitiveComponent* OverlappedComponent, AActor* Oth
 	if (OtherActor == GetOwner()) return;
 	APSCharacter* HitPSCharacter = Cast<APSCharacter>(OtherActor);
 	if (HitPSCharacter)
-	{
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Green, FString(OtherActor->GetName()));
-		}
+	{		
 		if (MeleeImpactSound)
 		{
 			UGameplayStatics::PlaySoundAtLocation(

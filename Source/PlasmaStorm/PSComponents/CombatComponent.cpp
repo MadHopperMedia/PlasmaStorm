@@ -1060,7 +1060,7 @@ void UCombatComponent::AimAssist(float DeltaTime, FHitResult& HitResult)
 		//FRotator PawnRotation = FMath::RInterpTo(Character->GetActorRotation(), RotationForPawn, DeltaTime, AimAssistSpeedYaw);
 		FRotator PawnPitch;			
 			
-		FRotator PawnRotation = FMath::Lerp(Character->GetActorRotation(), RotationForPawn, .5);
+		FRotator PawnRotation = FMath::Lerp(Character->GetActorRotation(), RotationForPawn, .4);
 		Character->SetActorRotation(PawnRotation);
 				
 		

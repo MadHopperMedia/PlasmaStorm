@@ -423,7 +423,7 @@ void UCTFComponent::AddGravity(float DeltaTime)
 
 void UCTFComponent::TraceForGround(float DeltaTime)
 {
-	if (PlayerPawn && !bIsJumping)
+	if (PlayerPawn)
 	{
 		
 		FHitResult Hit;
@@ -487,10 +487,12 @@ void UCTFComponent::TraceForGround(float DeltaTime)
 			FVector GroundedLocation;
 			if (bIsGrounded)
 			{
-				UpVelocity = FVector::ZeroVector;
-				GetWorld()->GetTimerManager().ClearTimer(EndJumpTimerHandle);
-				GetWorld()->GetTimerManager().ClearTimer(JumpTimerHandle);
-				GetWorld()->GetTimerManager().ClearTimer(BoostJumpTimerHandle);
+				if (UpVelocity != FVector::ZeroVector)
+				{
+					UpVelocity = FVector::ZeroVector;
+				}
+				
+				
 				GroundedLocation = FVector(PlayerPawn->GetActorLocation().X, PlayerPawn->GetActorLocation().Y, Hit.ImpactPoint.Z + TraceForGroundRange);
 				PlayerPawn->SetActorLocation(GroundedLocation, true);
 			}
@@ -499,9 +501,7 @@ void UCTFComponent::TraceForGround(float DeltaTime)
 				GetWorld()->GetTimerManager().ClearTimer(JumpTimerHandle);
 				GroundedLocation = FVector(PlayerPawn->GetActorLocation().X, PlayerPawn->GetActorLocation().Y, Hit.ImpactPoint.Z + TraceForGroundRange);
 				PlayerPawn->SetActorLocation(GroundedLocation, true);
-			}				
-				
-			
+			}			
 		}				
 	}		
 }

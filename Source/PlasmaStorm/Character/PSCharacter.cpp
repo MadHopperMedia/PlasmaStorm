@@ -1382,6 +1382,12 @@ void APSCharacter::GrenadeButtonPressed()
 
 void APSCharacter::MeleeButtonPressed()
 {
+	if (bIsFlying)
+	{
+		JumpButtonPressed();
+		return;
+	}
+	if (!IsHoldingThFlag()) return;
 	PlayMeleeMontage();
 }
 
