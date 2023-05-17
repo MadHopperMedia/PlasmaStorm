@@ -71,6 +71,12 @@ void ACTFPawn::Tick(float DeltaTime)
 		bIsFlying = CTFComponent->bIsFlying;
 		bTransitioningfromFlight = CTFComponent->bCanTransitionFlight;
 		bIsIdeling = CTFComponent->bIsIdeling;
+		CTFComponent->SetCanBoostJump(bCanBoostJump);
+		bIsSliding = CTFComponent->GetIsSliding();
+		if (FollowCamera)
+		{
+			CTFComponent->SetLookAtVector(FollowCamera->GetForwardVector());
+		}
 		
 	}
 	
@@ -247,6 +253,7 @@ void ACTFPawn::LookUp(float Val)
 void ACTFPawn::Roll(float Val)
 {
 	CTFComponent->RollInput = Val;
+	
 	RollVal = Val * -2;
 }
 
@@ -254,6 +261,7 @@ void ACTFPawn::Crouch()
 {
 	if (CTFComponent == nullptr) return;
 	CTFComponent->Crouch();
+	SetBoosting(false);
 	GetIsCrouched();
 }
 

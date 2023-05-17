@@ -179,6 +179,11 @@ void UCTFComponent::SetMovementState(EMovementState State)
 			bAffectedByGravity = false;
 			bIsFlying = false;			
 			bCanTransitionFlight = false;
+			bSliding = false;
+			break;
+		case EMovementState::EMS_Sliding:
+			bSliding = true;
+			bIsBoosting = false;
 			break;
 		
 		}
@@ -196,8 +201,7 @@ void UCTFComponent::SetMovementState(EMovementState State)
 
 void UCTFComponent::ServerSetMovementState_Implementation(EMovementState State)
 {	
-	SetMovementState(State);
-	
+	SetMovementState(State);	
 }
 
 void UCTFComponent::Multi_SetMovementState_Implementation(EMovementState State)
@@ -244,6 +248,11 @@ void UCTFComponent::Multi_SetMovementState_Implementation(EMovementState State)
 		bAffectedByGravity = false;
 		bIsFlying = false;		
 		bCanTransitionFlight = false;
+		bSliding = false;
+		break;
+	case EMovementState::EMS_Sliding:
+		bSliding = true;
+		bIsBoosting = false;
 		break;
 	
 	}
@@ -311,7 +320,7 @@ void UCTFComponent::AddPitchRotation(float DeltaTime)
 	float MDPS;
 	if (bCanTransitionFlight)
 	{
-		PitchInputRunup = FMath::FInterpConstantTo(PitchInputRunup, PitchInput, DeltaTime, 1.0f);
+		PitchInputRunup = FMath::FInterpConstantTo(PitchInputRunup, PitchInput, DeltaTime, 2.f);
 		MDPS = MaxDegreesPitchPerSecondFlying;
 	}
 	else
@@ -330,7 +339,7 @@ void UCTFComponent::AddRollRotation(float DeltaTime)
 {
 	if (bCanTransitionFlight)
 	{
-		RollInputRunup = FMath::FInterpConstantTo(RollInputRunup, RollInput, DeltaTime, 1.0f);
+		RollInputRunup = FMath::FInterpConstantTo(RollInputRunup, RollInput, DeltaTime, 2.0f);
 	}
 	else
 	{
@@ -349,7 +358,7 @@ void UCTFComponent::Turn(float Val)
 	{
 		
 		
-		YawInput = FMath::FInterpTo(YawInput, Val, GetWorld()->GetDeltaSeconds(), 1.5f);
+		YawInput = FMath::FInterpTo(YawInput, Val, GetWorld()->GetDeltaSeconds(), 2.5f);
 		
 		
 	}
@@ -398,7 +407,18 @@ void UCTFComponent::AddGravity(float DeltaTime)
 	{
 		Gravity = FVector::ZeroVector;
 	}
+	if (bIsFlying)
+	{
+		UpVelocity = FMath::VInterpTo(UpVelocity, FVector::ZeroVector, DeltaTime, 1.5);
+	}
+
 	UpVelocity  = UpVelocity + Gravity / 100;
+	UpVelocity.Z = FMath::Clamp(UpVelocity.Z, -TerminalVelocity, 100);
+
+	if (GEngine)
+	{
+		//GEngine->AddOnScreenDebugMessage(-1, .01f, FColor::Blue, FString(UpVelocity.ToString()));
+	}
 }
 
 void UCTFComponent::TraceForGround(float DeltaTime)
@@ -449,7 +469,7 @@ void UCTFComponent::TraceForGround(float DeltaTime)
 					SetMovementState(EMovementState::EMS_Walking);				
 				}
 				bIsSlidingDownSlope = false;
-				SlideMultiplier = 1;
+				SlideMultiplier = 1;				
 			}
 			else if(MovementState != EMovementState::EMS_Flying && MovementState != EMovementState::EMS_Hovering)
 			{
@@ -467,7 +487,12 @@ void UCTFComponent::TraceForGround(float DeltaTime)
 			FVector GroundedLocation;
 			if (bIsGrounded)
 			{
-				GetWorld()->GetTimerManager().ClearTimer(JumpTimerHandle);				
+				if (UpVelocity != FVector::ZeroVector)
+				{
+					UpVelocity = FVector::ZeroVector;
+				}
+				
+				
 				GroundedLocation = FVector(PlayerPawn->GetActorLocation().X, PlayerPawn->GetActorLocation().Y, Hit.ImpactPoint.Z + TraceForGroundRange);
 				PlayerPawn->SetActorLocation(GroundedLocation, true);
 			}
@@ -476,9 +501,7 @@ void UCTFComponent::TraceForGround(float DeltaTime)
 				GetWorld()->GetTimerManager().ClearTimer(JumpTimerHandle);
 				GroundedLocation = FVector(PlayerPawn->GetActorLocation().X, PlayerPawn->GetActorLocation().Y, Hit.ImpactPoint.Z + TraceForGroundRange);
 				PlayerPawn->SetActorLocation(GroundedLocation, true);
-			}				
-				
-			
+			}			
 		}				
 	}		
 }
@@ -554,11 +577,18 @@ void UCTFComponent::CalculateVelocity(float DeltaTime)
 			
 		}
 	}
+	if (bBoostJumping)
+	{
+		MaxSpeed = WalkSpeed;
+	}
 	
 	
 
 	GroundMovementVelocity = UKismetMathLibrary::ClampVectorSize(GroundMovementVelocity, -MaxSpeed, MaxSpeed);
-	
+	if (bSliding)
+	{
+		GroundMovementVelocity = GroundMovementVelocity * 1.5f;
+	}
 	
 	PlayerVelocity = GroundMovementVelocity + UpVelocity;
 
@@ -566,18 +596,14 @@ void UCTFComponent::CalculateVelocity(float DeltaTime)
 	{
 		PlayerVelocity = FVector::ZeroVector;
 	}	
-
-	
 }
 
 void UCTFComponent::MoveForward(FVector ForwardVector, float Val)
-{	
-
-	
+{		
 	ForwardInputVector = ForwardVector;
 	
 
-	if (!bIsGrounded && !bIsFlying)
+	if (!bIsGrounded && !bIsFlying && !bBoostJumping)
 	{
 		ForwardInput = Val * AirControlWhileJumpingMultiplier;
 	}
@@ -587,8 +613,11 @@ void UCTFComponent::MoveForward(FVector ForwardVector, float Val)
 	}
 	else if (bIsGrounded)
 	{
+		ForwardInput = Val;		
+	}
+	else if (bBoostJumping)
+	{
 		ForwardInput = Val;
-		
 	}
 	
 	
@@ -666,16 +695,38 @@ void UCTFComponent::MoveRight(FVector RightVector, float Val)
 
 }
 
+void UCTFComponent::Server_EnterFlight_Implementation()
+{
+	if (bServerCanDamageFromThrusters)
+	{
+		bServerCanDamageFromThrusters = false;
+		UGameplayStatics::ApplyDamage(GetOwner(), 30, nullptr, GetOwner(), UDamageType::StaticClass());
+		GetWorld()->GetTimerManager().SetTimer(
+			BoostJumpStopTimerHandle,
+			this,
+			&UCTFComponent::StopBoostJump,
+			3.0f
+		);
+	}
+}
+
 void UCTFComponent::JumpButtonPressed()
 {	
 	if (bIsGrounded)
 	{
+		
 		if (bIsCrouching)
 		{
 			Crouch(); return;
 		}
-		bIsJumping = true;
+		UpVelocity = FVector::ZeroVector;
+		bWantsToJump = true;		
 		JumpTimer();
+		if (bIsBoosting && bCanBoostJump)
+		{
+			BoostJump();
+			//GetWorld()->GetTimerManager().ClearTimer(JumpTimerHandle);
+		}
 	}
 	else if(MovementState == EMovementState::EMS_Hovering || MovementState == EMovementState::EMS_Flying)
 	{
@@ -688,64 +739,93 @@ void UCTFComponent::JumpButtonPressed()
 		GetWorld()->GetTimerManager().ClearTimer(JumpTimerHandle);
 		Server_EnterFlight();
 		
+		
 	}	
-}
-
-void UCTFComponent::Server_EnterFlight_Implementation()
-{
-	UGameplayStatics::ApplyDamage(GetOwner(), 30, nullptr, GetOwner(), UDamageType::StaticClass());
-	
 }
 
 void UCTFComponent::JumpButtonReleased()
 {
-	if (bIsGrounded) return;
+	JumpEnded();
+}
+
+void UCTFComponent::PlayerJump(float DeltaTime)
+{
+
+	
+	if (PlayerPawn == nullptr || bIsFlying) return;
+	
+	if (!bIsJumping && !bBoostJumping)
+	{
+		JumpVelocity = FVector::ZeroVector;		
+	}
+	else
+	{
+		bIsGrounded = false;
+		JumpVelocity = PlayerPawn->GetActorUpVector() * JumpForce;
+	}
+	
+	if (bBoostJumping)
+	{		
+		
+		JumpVelocity = PlayerPawn->GetActorUpVector() * 400  + (LookAtVector * 200 * ForwardInput); 
+		
+	}	
+	
+	UpVelocity = UKismetMathLibrary::Vector_ClampSizeMax(UpVelocity + JumpVelocity / 100, 50);
+		
+}
+
+void UCTFComponent::PlayerStopJump()
+{
+	
+	
+	JumpEnded();	
+}
+
+void UCTFComponent::JumpEnded()
+{
+	bWantsToJump = false;
+	bIsJumping = false;
+	bBoostJumping = false;
+
+	GetWorld()->GetTimerManager().ClearTimer(EndJumpTimerHandle);
+	GetWorld()->GetTimerManager().ClearTimer(JumpTimerHandle);
+	GetWorld()->GetTimerManager().ClearTimer(BoostJumpTimerHandle);
+	
+}
+
+void UCTFComponent::StopBoostJump()
+{
+	bServerCanDamageFromThrusters = true;
+	JumpEnded();
+}
+
+void UCTFComponent::JumpTimer()
+{
+	GetWorld()->GetTimerManager().ClearTimer(EndJumpTimerHandle);
+	GetWorld()->GetTimerManager().ClearTimer(JumpTimerHandle);
+	GetWorld()->GetTimerManager().ClearTimer(BoostJumpTimerHandle);
+	bIsJumping = true;	
 	GetWorld()->GetTimerManager().SetTimer(
-		EndJumpTimerHandle,
+		JumpTimerHandle,
 		this,
 		&UCTFComponent::PlayerStopJump,
 		EndJumpTime
 	);
 }
 
-void UCTFComponent::PlayerJump(float DeltaTime)
+void UCTFComponent::BoostJump()
 {
-
-	FVector JumpVelocity;
-	if (PlayerPawn == nullptr) return;
-	if (!bIsJumping)
-	{
-		JumpVelocity = FVector::ZeroVector;
-	}
-	else
-	{
-		bIsGrounded = false;		
-		JumpVelocity = PlayerPawn->GetActorUpVector() * JumpForce;
-	}
-
-	UpVelocity = JumpVelocity / 100;
-	
-	
-}
-
-void UCTFComponent::PlayerStopJump()
-{
-	if (bIsJumping)
-	{
-		bIsJumping = false;
-	}
-	
-}
-
-void UCTFComponent::JumpTimer()
-{
-
+	if (!bWantsToJump) return;
+	Server_EnterFlight();
+	bBoostJumping = true;	
 	GetWorld()->GetTimerManager().SetTimer(
-		JumpTimerHandle,
+		BoostJumpTimerHandle,
 		this,
-		&UCTFComponent::JumpButtonReleased,
+		&UCTFComponent::StopBoostJump,
 		JumpHoldTime
 	);
+	bServerCanDamageFromThrusters = false;
 }
 
 void UCTFComponent::Crouch()
@@ -753,7 +833,23 @@ void UCTFComponent::Crouch()
 	if (bIsFlying) return;
 	if (!bIsCrouching)
 	{
-		SetMovementState(EMovementState::EMS_Crouching);
+		
+		if (bIsBoosting)
+		{	
+			bIsBoosting = false;
+			SetMovementState(EMovementState::EMS_Sliding);
+			GetWorld()->GetTimerManager().SetTimer(
+				SlidingTimerHandle,
+				this,
+				&UCTFComponent::StopSliding,
+				SlideTime
+			);
+		}
+		else
+		{
+			SetMovementState(EMovementState::EMS_Crouching);
+		}
+		
 	}
 	else
 	{
@@ -773,3 +869,7 @@ void UCTFComponent::Crouch()
 	
 }
 
+void UCTFComponent::StopSliding()
+{	
+	SetMovementState(EMovementState::EMS_Crouching);
+}

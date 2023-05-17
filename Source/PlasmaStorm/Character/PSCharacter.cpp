@@ -244,11 +244,14 @@ void APSCharacter::Tick(float DeltaTime)
 	}
 	if (Shield < ShieldRequiredToFly)
 	{
-		CTFComponent->bCanFly = false;
+		CTFComponent->bCanFly = false;		
+		bCanBoostJump = false;
+		
 	}
 	else
 	{
 		CTFComponent->bCanFly = true;
+		bCanBoostJump = true;
 	}
 	if (Combat && Combat->MountedWeapon)
 	{
@@ -506,11 +509,14 @@ void APSCharacter::PlayerCrouch()
 {
 	if (IsHoldingThFlag()) return;
 	Crouch();
+	StopBoosting();
+	bIsBoosting = false;
 }
 
 void APSCharacter::JumpButtonPressed()
 {
 	if (Combat && Combat->bAiming) return;
+	
 	Jump();
 }
 
@@ -612,6 +618,11 @@ AWeapon* APSCharacter::GetEquippedWeapon()
 
 void APSCharacter::AimButtonPressed()
 {
+	if (Combat && IsHoldingThFlag())
+	{
+		DropFlag();
+		return;
+	}
 	if (Combat && !bIsFlying && !IsHoldingThFlag() && Combat->EquippedWeapon && Combat->EquippedWeapon->GetCanZoom())
 	{
 		Combat->SetAiming(true);
@@ -831,8 +842,8 @@ void APSCharacter::SpawnDefaultWeapon()
 void APSCharacter::FireButtonPressed()
 {
 	if (Combat && IsHoldingThFlag())
-	{		
-		DropFlag();
+	{
+		MeleeButtonPressed();
 		return;
 	}
 	if (bIsBoosting || bIsFlying && !bTransitioningfromFlight || IsHoldingThFlag()) return;
@@ -1374,10 +1385,87 @@ void APSCharacter::MeleeButtonPressed()
 	if (bIsFlying)
 	{
 		JumpButtonPressed();
+		return;
+	}
+	if (!IsHoldingThFlag()) return;
+	PlayMeleeMontage();
+}
+
+void APSCharacter::PlayMeleeMontage()
+{
+	
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();	
+	UAnimInstance* FPSAnimInstance = GetFPSMesh()->GetAnimInstance();
+	if (MeleeMontage && AnimInstance)
+	{
+		AnimInstance->Montage_Play(MeleeMontage);
+		if (HasAuthority())
+		{
+			MultiPlayMeleeMontage();
+		}
+		else
+		{
+			ServerPlayMeleeMontage();
+		}			
+	}
+	if (MeleeMontage && FPSAnimInstance)
+	{
+		FPSAnimInstance->Montage_Play(MeleeMontage);
+		if (HasAuthority())
+		{
+			MultiPlayMeleeMontage();
+		}
+		else
+		{
+			ServerPlayMeleeMontage();
+		}
+	}
+
+}
+
+void APSCharacter::ServerPlayMeleeMontage_Implementation()
+{
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && MeleeMontage)
+	{
+		AnimInstance->Montage_Play(MeleeMontage);
+		MultiPlayMeleeMontage();
+		
+	}
+}
+
+void APSCharacter::MultiPlayMeleeMontage_Implementation()
+{
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && MeleeMontage)
+	{
+		AnimInstance->Montage_Play(MeleeMontage);		
+	}
+		
+	
+}
+
+void APSCharacter::EnableWeaponMeleeHitbox()
+{
+	if (IsHoldingThFlag() && Combat && Combat->TheFlag)
+	{
+		Combat->TheFlag->EnableHitBox();
 	}
 	else if (Combat && Combat->EquippedWeapon)
 	{
-		Combat->Melee();
+		Combat->EquippedWeapon->EnableHitBox();
+	}
+}
+
+void APSCharacter::DisableWeaponMeleeHitbox()
+{
+	if (IsHoldingThFlag() && Combat && Combat->TheFlag)
+	{
+		Combat->TheFlag->DisableHitBox();
+	}
+	else if (Combat && Combat->EquippedWeapon)
+	{
+		Combat->EquippedWeapon->DisableHitBox();
 	}
 }
 

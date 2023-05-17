@@ -285,4 +285,6 @@ public:
 	int32 GetMaxAmmoForWeapon(EWeaponType WeaponType);
 	FORCEINLINE TMap<EWeaponType, int32> GetCurrentAmmoAmountForWeapon() const { return CarriedAmmoMap; }
 	bool ShouldSwapWeapons();
+	FORCEINLINE AWeapon* GetEquippedWeapon() { return EquippedWeapon; }
+	FORCEINLINE AWeapon* GetSecondaryWeapon() { return SecondaryWeapon; }
 };

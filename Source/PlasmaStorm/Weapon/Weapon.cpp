@@ -4,6 +4,7 @@
 #include "Weapon.h"
 #include "TimerManager.h"
 #include "Components/SphereComponent.h"
+#include "Components/BoxComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "PlasmaStorm/Character/PSCharacter.h"
@@ -13,12 +14,14 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/SkeletalMeshSocket.h"
 #include "Casing.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundCue.h"
 
 // Sets default values
 AWeapon::AWeapon()
 {
  	
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 	bReplicates = true;
 	SetReplicateMovement(true);
 
@@ -34,7 +37,10 @@ AWeapon::AWeapon()
 	AreaSphere->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
 	AreaSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
-	
+	MeleeHitBox = CreateDefaultSubobject<UBoxComponent>(TEXT("MeleeHitBox"));
+	MeleeHitBox->SetupAttachment(RootComponent);
+	MeleeHitBox->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+	MeleeHitBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	
 
 	
@@ -57,13 +63,17 @@ void AWeapon::BeginPlay()
 	AreaSphere->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
 	AreaSphere->OnComponentBeginOverlap.AddDynamic(this, &AWeapon::OnSphereOverlap);
 	AreaSphere->OnComponentEndOverlap.AddDynamic(this, &AWeapon::OnSphereEndOverlap);
+	MeleeHitBox->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
+	//MeleeHitBox->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	MeleeHitBox->OnComponentBeginOverlap.AddDynamic(this, &AWeapon::OnBoxOverlap);
+	MeleeHitBox->OnComponentEndOverlap.AddDynamic(this, &AWeapon::OnBoxEndOverlap);
 	AddedAmmo = Ammo;
 }
 
 void AWeapon::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	RecharageAmmo(DeltaTime);
+	RecharageAmmo(DeltaTime);	
 }
 
 void AWeapon::SetWeaponState(EWeaponState State)
@@ -258,6 +268,60 @@ void AWeapon::Dropped()
 void AWeapon::DroppedTimerFinished()
 {
 	Destroy();
+}
+
+void AWeapon::EnableHitBox()
+{
+	
+	MeleeHitBox->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	
+}
+
+void AWeapon::DisableHitBox()
+{
+	
+	MeleeHitBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	
+}
+
+void AWeapon::OnBoxOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	if (OtherActor == GetOwner()) return;
+	APSCharacter* HitPSCharacter = Cast<APSCharacter>(OtherActor);
+	if (HitPSCharacter)
+	{		
+		if (MeleeImpactSound)
+		{
+			UGameplayStatics::PlaySoundAtLocation(
+				this,
+				MeleeImpactSound,
+				GetActorLocation()
+			);
+		}
+		PSOwnerCharacter = PSOwnerCharacter == nullptr ? Cast<APSCharacter>(GetOwner()) : PSOwnerCharacter;
+		if (PSOwnerCharacter)
+		{
+			PSOwnerController = PSOwnerController == nullptr ? Cast<APSPlayerController>(PSOwnerCharacter->Controller) : PSOwnerController;
+			if (HasAuthority() && PSOwnerCharacter)
+			{
+				UGameplayStatics::ApplyDamage(
+					OtherActor,
+					MeleeDamage,
+					PSOwnerController,
+					this,
+					UDamageType::StaticClass()
+				);
+			}
+		}
+		
+	}
+	
+	
+}
+
+void AWeapon::OnBoxEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+
 }
 
 void AWeapon::RecharageAmmo(float DeltaTime)
