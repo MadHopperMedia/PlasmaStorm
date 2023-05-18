@@ -87,6 +87,10 @@ void UCTFComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorCo
 				}
 			}
 		}
+		if (DodgeVelocity != FVector::ZeroVector)
+		{
+			DodgeVelocity = FMath::Lerp(DodgeVelocity, FVector::ZeroVector, .05f);
+		}
 	}	
 	
 	
@@ -339,7 +343,7 @@ void UCTFComponent::AddRollRotation(float DeltaTime)
 {
 	if (bCanTransitionFlight)
 	{
-		RollInputRunup = FMath::FInterpConstantTo(RollInputRunup, RollInput, DeltaTime, 2.0f);
+		RollInputRunup = FMath::FInterpConstantTo(RollInputRunup, RollInput, DeltaTime, 2.0f);		
 	}
 	else
 	{
@@ -423,7 +427,7 @@ void UCTFComponent::AddGravity(float DeltaTime)
 
 void UCTFComponent::TraceForGround(float DeltaTime)
 {
-	if (PlayerPawn)
+	if (PlayerPawn && !bIsJumping)
 	{
 		
 		FHitResult Hit;
@@ -510,7 +514,7 @@ void UCTFComponent::MoveCharacter(float DeltaTime)
 {
 	FHitResult Hit;
 	
-	PlayerVelocity = PlayerVelocity * DeltaTime * 100;
+	PlayerVelocity = (PlayerVelocity + DodgeVelocity) * DeltaTime * 100;
 	PlayerPawn->AddActorWorldOffset(PlayerVelocity, true, &Hit, ETeleportType::TeleportPhysics);
 	if (Hit.bBlockingHit)
 	{	
@@ -592,10 +596,14 @@ void UCTFComponent::CalculateVelocity(float DeltaTime)
 	
 	PlayerVelocity = GroundMovementVelocity + UpVelocity;
 
-	if (PlayerVelocity.Size() < 0.01f)
+	if (PlayerVelocity.Size() < 1.f)
 	{
 		PlayerVelocity = FVector::ZeroVector;
-	}	
+	}
+	if (GEngine)
+	{
+		//GEngine->AddOnScreenDebugMessage(-1, .01f, FColor::Cyan, UpVelocity.ToString());
+	}
 }
 
 void UCTFComponent::MoveForward(FVector ForwardVector, float Val)
@@ -719,7 +727,7 @@ void UCTFComponent::JumpButtonPressed()
 		{
 			Crouch(); return;
 		}
-		UpVelocity = FVector::ZeroVector;
+		UpVelocity = FVector(0.0f, 0.0f, 1.f);
 		bWantsToJump = true;		
 		JumpTimer();
 		if (bIsBoosting && bCanBoostJump)
@@ -826,6 +834,11 @@ void UCTFComponent::BoostJump()
 		JumpHoldTime
 	);
 	bServerCanDamageFromThrusters = false;
+}
+
+void UCTFComponent::Dodge(FVector Direction)
+{	
+	DodgeVelocity = (Direction * DodgeSpeed);
 }
 
 void UCTFComponent::Crouch()

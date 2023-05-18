@@ -74,6 +74,7 @@ protected:
 	void SetCanMove(bool bCanMove);
 	bool bCanBoostJump = true;
 	bool bIsSliding = false;
+	void Dodge(FVector Direction);
 	
 
 private:	

@@ -131,6 +131,8 @@ protected:
 	float TraceCapsuleRadious = 20;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 	float TerminalVelocity = 20;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+	float DodgeSpeed = 20;
 	UPROPERTY(BlueprintReadOnly)
 	bool bIsGrounded = true;
 	UPROPERTY(BlueprintReadOnly)
@@ -188,9 +190,13 @@ private:
 	void BoostJump();
 	bool bBoostJumping = false;
 	bool bCanBoostJump = true;
+
+	void Dodge(FVector Direction);
 	
 	FVector LastPosition;
 	float LastUpdateTime;
+
+	FVector DodgeVelocity = FVector::ZeroVector;
 	
 	bool bAiming = false;
 	

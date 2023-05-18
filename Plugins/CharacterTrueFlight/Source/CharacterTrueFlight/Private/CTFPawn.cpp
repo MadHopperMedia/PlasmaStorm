@@ -87,6 +87,14 @@ void ACTFPawn::SetCanMove(bool bCanMove)
 	CTFComponent->SetCanMove(false);
 }
 
+void ACTFPawn::Dodge(FVector Direction)
+{
+	if (CTFComponent)
+	{
+		CTFComponent->Dodge(Direction);
+	}
+}
+
 // Called to bind functionality to input
 void ACTFPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {

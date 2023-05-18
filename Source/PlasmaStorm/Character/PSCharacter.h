@@ -146,6 +146,9 @@ protected:
 	void FireButtonReleased();
 	void ReloadButtonPressed();
 	void ReloadButtonReleased();
+
+	void DodgeRightButtonPressed();
+	void DodgeLeftButtonPressed();
 	
 	void SetCollisionsAfterElimmed();
 	void GrenadeButtonPressed();
@@ -218,6 +221,9 @@ private:
 	bool PitchingDown;
 	bool bInverted = false;	
 	bool EquippingWeapon = false;
+
+	bool bPrimedToDodgeRight = false;
+	bool bPrimedToDodgeLeft = false;
 	
 	UFUNCTION()
 	void OnRep_AoPitch();
@@ -257,6 +263,9 @@ private:
 
 	UPROPERTY(EditAnywhere, Category = Combat)
 	UAnimMontage* MeleeMontage;
+
+	UPROPERTY(EditAnywhere, Category = Combat)
+	UAnimMontage* DodgeMontage;
 
 	UPROPERTY(EditAnywhere)
 	float	OverlappingCharacterMultiplier = 1;	
@@ -390,6 +399,23 @@ private:
 	
 	bool bUseFirstPerson = false;
 
+	/**
+	* Dodge
+	**/
+
+	FTimerHandle DodgeButtonTimer;
+
+	void StartDodgeTimer();
+	void DodgeButtonTimerFinished();
+	UFUNCTION(Server, Reliable)
+	void ServerDodge(FName Section);
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastDodge(FName Section);
+
+	
+
+	
+
 public:
 	UPROPERTY(BlueprintReadWrite)
 	bool bIsCrouching;
@@ -462,4 +488,6 @@ public:
 	FORCEINLINE bool GetIsSliding() const { return bIsSliding; }
 	UFUNCTION(BlueprintCallable)
 	FORCEINLINE void SetUseFirstPerson(bool bUseFPS) { bUseFirstPerson = bUseFPS; }
+	UFUNCTION(BlueprintCallable)
+	void PlayerDodge(FVector DodgeDirection);
 };

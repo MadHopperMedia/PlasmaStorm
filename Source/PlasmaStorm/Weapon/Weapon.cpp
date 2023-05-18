@@ -298,6 +298,10 @@ void AWeapon::OnBoxOverlap(UPrimitiveComponent* OverlappedComponent, AActor* Oth
 				GetActorLocation()
 			);
 		}
+		if (GEngine)
+		{
+			//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Cyan, FString(OverlappedComponent->GetName()));
+		}
 		PSOwnerCharacter = PSOwnerCharacter == nullptr ? Cast<APSCharacter>(GetOwner()) : PSOwnerCharacter;
 		if (PSOwnerCharacter)
 		{

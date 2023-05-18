@@ -73,7 +73,7 @@ void UPSCharacterAnimInstance::NativeUpdateAnimation(float DeltaTime)
 		LeftHandTransform.SetRotation(FQuat(OutRotation));
 
 		
-		if (PSCharacter->IsLocallyControlled() && PSCharacter->GetHitTarget() != FVector::ZeroVector)
+		if (PSCharacter->IsLocallyControlled() && PSCharacter->GetHitTarget() != FVector::ZeroVector && PSCharacter->GetCombatState() == ECombatState::ECS_Unoccupied)
 		{
 			bLocallyControlled = true;
 			FTransform RightHandTransform = PSCharacter->GetMesh()->GetSocketTransform(FName("hand_r"), ERelativeTransformSpace::RTS_World);

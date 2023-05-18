@@ -165,7 +165,8 @@ void APSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	PlayerInputComponent->BindAction("Boost", IE_Pressed, this, &APSCharacter::BoostButtonPressed);
 	PlayerInputComponent->BindAction("Boost", IE_Released, this, &APSCharacter::BoostButtonReleased);
 	PlayerInputComponent->BindAction("Melee", IE_Pressed, this, &APSCharacter::MeleeButtonPressed);
-
+	PlayerInputComponent->BindAction("DodgeRight", IE_Pressed, this, &APSCharacter::DodgeRightButtonPressed);
+	PlayerInputComponent->BindAction("DodgeLeft", IE_Pressed, this, &APSCharacter::DodgeLeftButtonPressed);
 }
 
 void APSCharacter::PostInitializeComponents()
@@ -1366,6 +1367,117 @@ void APSCharacter::ReloadButtonReleased()
 	}
 }
 
+void APSCharacter::DodgeRightButtonPressed()
+{	
+	if (CTFComponent == nullptr || !bIsFlying || Stamina <= 40 || !GetIsFlyingForward()) return;
+	bPrimedToDodgeLeft = false;
+	
+	if (bPrimedToDodgeRight)
+	{
+		
+		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+		if (AnimInstance && FireWeaponMontage && IsLocallyControlled())
+		{
+			AnimInstance->Montage_Play(DodgeMontage);
+			FName SectionName;
+			SectionName = FName("DodgeRight");
+			AnimInstance->Montage_JumpToSection(SectionName);		
+		}
+		bPrimedToDodgeRight = false;
+		Stamina = Stamina - 40;
+		StopBoosting();
+		if (HasAuthority())
+		{
+			MulticastDodge("DodgeRight");
+		}
+		else
+		{
+			ServerDodge("DodgeRight");
+		}
+	}
+	else
+	{
+		bPrimedToDodgeRight = true;
+		StartDodgeTimer();
+	}
+}
+
+void APSCharacter::DodgeLeftButtonPressed()
+{
+	if (CTFComponent == nullptr || !bIsFlying || Stamina <= 40 || !GetIsFlyingForward()) return;
+	bPrimedToDodgeRight = false;
+
+	if (bPrimedToDodgeLeft)
+	{			
+		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+		if (AnimInstance && FireWeaponMontage && IsLocallyControlled())
+		{
+			AnimInstance->Montage_Play(DodgeMontage);
+			FName SectionName;
+			SectionName = FName("DodgeLeft");
+			AnimInstance->Montage_JumpToSection(SectionName);
+		}
+		bPrimedToDodgeRight = false;
+		Stamina = Stamina - 40;
+		StopBoosting();
+		if (HasAuthority())
+		{
+			MulticastDodge("DodgeLeft");
+		}
+		else
+		{
+			ServerDodge("DodgeLeft");
+		}
+	}
+	else
+	{
+		bPrimedToDodgeLeft = true;
+		StartDodgeTimer();
+	}
+}
+
+void APSCharacter::StartDodgeTimer()
+{
+	// ToDo Clear Timer
+	GetWorldTimerManager().SetTimer(
+		DodgeButtonTimer,
+		this,
+		&APSCharacter::DodgeButtonTimerFinished,
+		.2f
+	);
+}
+
+void APSCharacter::DodgeButtonTimerFinished()
+{
+	bPrimedToDodgeRight = false;
+	bPrimedToDodgeLeft = false;
+}
+
+void APSCharacter::PlayerDodge(FVector DodgeDirection)
+{
+	if (IsLocallyControlled())
+	{
+		Dodge(DodgeDirection);
+	}	
+}
+
+void APSCharacter::ServerDodge_Implementation(FName Section)
+{
+	MulticastDodge(Section);
+}
+
+void APSCharacter::MulticastDodge_Implementation(FName Section)
+{
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && FireWeaponMontage && !IsLocallyControlled())
+	{
+		AnimInstance->Montage_Play(DodgeMontage);
+		FName SectionName;
+		SectionName = FName("Section");
+		AnimInstance->Montage_JumpToSection(SectionName);
+	}
+}
+
 ECombatState APSCharacter::GetCombatState() const
 {
 	if (Combat == nullptr) return ECombatState::ECS_MAX;
@@ -1387,18 +1499,60 @@ void APSCharacter::MeleeButtonPressed()
 		JumpButtonPressed();
 		return;
 	}
-	if (!IsHoldingThFlag()) return;
+	if (Combat == nullptr || Combat->CombatState != ECombatState::ECS_Unoccupied) return;
 	PlayMeleeMontage();
+	
+	if (Combat->TargetCharacter != nullptr)
+	{
+		FVector DistanceToTarget = GetActorLocation() - Combat->TargetCharacter->GetActorLocation();
+		if (DistanceToTarget.Size() < 200 && DistanceToTarget.Size() > 50)
+		{			
+			SetActorLocation(GetActorLocation() + GetActorForwardVector() * (DistanceToTarget.Size() - 50));
+		}
+	}
 }
+
+
 
 void APSCharacter::PlayMeleeMontage()
 {
 	
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();	
 	UAnimInstance* FPSAnimInstance = GetFPSMesh()->GetAnimInstance();
-	if (MeleeMontage && AnimInstance)
-	{
+	if (MeleeMontage && AnimInstance && Combat && Combat->EquippedWeapon)
+	{	
+		Combat->CombatState = ECombatState::ECS_Melee;
 		AnimInstance->Montage_Play(MeleeMontage);
+		FName SectionName;
+		switch (Combat->EquippedWeapon->GetWeaponType())
+		{
+		case EWeaponType::EWT_AssaultRifle:
+			SectionName = FName("Rifle");
+			break;
+		case EWeaponType::EWT_RocketLauncher:
+			SectionName = FName("Rifle");
+			break;
+		case EWeaponType::EWT_Pistol:
+			SectionName = FName("Rifle");
+			break;
+		case EWeaponType::EWT_SubmachineGun:
+			SectionName = FName("Rifle");
+			break;
+		case EWeaponType::EWT_Shotgun:
+			SectionName = FName("Rifle");
+			break;
+		case EWeaponType::EWT_SniperRifle:
+			SectionName = FName("Rifle");
+			break;
+		case EWeaponType::EWT_GrenadeLauncher:
+			SectionName = FName("Rifle");
+			break;
+		}
+		if (IsHoldingThFlag())
+		{
+			SectionName = FName("Flag");
+		}
+		AnimInstance->Montage_JumpToSection(SectionName);
 		if (HasAuthority())
 		{
 			MultiPlayMeleeMontage();
@@ -1406,43 +1560,104 @@ void APSCharacter::PlayMeleeMontage()
 		else
 		{
 			ServerPlayMeleeMontage();
-		}			
-	}
-	if (MeleeMontage && FPSAnimInstance)
-	{
-		FPSAnimInstance->Montage_Play(MeleeMontage);
-		if (HasAuthority())
-		{
-			MultiPlayMeleeMontage();
 		}
-		else
+		if (FPSAnimInstance && IsLocallyControlled())
 		{
-			ServerPlayMeleeMontage();
+			FPSAnimInstance->Montage_Play(MeleeMontage);
+			FPSAnimInstance->Montage_JumpToSection(SectionName);
 		}
 	}
+	
 
 }
 
 void APSCharacter::ServerPlayMeleeMontage_Implementation()
 {
+	if (IsLocallyControlled() || Combat == nullptr || !Combat->EquippedWeapon) return;
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	UAnimInstance* FPSAnimInstance = GetFPSMesh()->GetAnimInstance();
 	if (AnimInstance && MeleeMontage)
 	{
-		AnimInstance->Montage_Play(MeleeMontage);
-		MultiPlayMeleeMontage();
 		
+		AnimInstance->Montage_Play(MeleeMontage);
+		FName SectionName;
+		switch (Combat->EquippedWeapon->GetWeaponType())
+		{
+		case EWeaponType::EWT_AssaultRifle:
+			SectionName = FName("Rifle");
+			break;
+		case EWeaponType::EWT_RocketLauncher:
+			SectionName = FName("Rifle");
+			break;
+		case EWeaponType::EWT_Pistol:
+			SectionName = FName("Rifle");
+			break;
+		case EWeaponType::EWT_SubmachineGun:
+			SectionName = FName("Rifle");
+			break;
+		case EWeaponType::EWT_Shotgun:
+			SectionName = FName("Rifle");
+			break;
+		case EWeaponType::EWT_SniperRifle:
+			SectionName = FName("Rifle");
+			break;
+		case EWeaponType::EWT_GrenadeLauncher:
+			SectionName = FName("Rifle");
+			break;
+		}
+		if (IsHoldingThFlag())
+		{
+			SectionName = FName("Flag");
+		}
+		AnimInstance->Montage_JumpToSection(SectionName);
+		MultiPlayMeleeMontage();
+		if (FPSAnimInstance && IsLocallyControlled())
+		{
+			FPSAnimInstance->Montage_Play(MeleeMontage);
+			FPSAnimInstance->Montage_JumpToSection(SectionName);
+		}		
 	}
 }
 
 void APSCharacter::MultiPlayMeleeMontage_Implementation()
 {
+	if (IsLocallyControlled() || Combat == nullptr || !Combat->EquippedWeapon) return;
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	if (AnimInstance && MeleeMontage)
 	{
-		AnimInstance->Montage_Play(MeleeMontage);		
-	}
 		
-	
+		AnimInstance->Montage_Play(MeleeMontage);
+		FName SectionName;
+		switch (Combat->EquippedWeapon->GetWeaponType())
+		{
+		case EWeaponType::EWT_AssaultRifle:
+			SectionName = FName("Rifle");
+			break;
+		case EWeaponType::EWT_RocketLauncher:
+			SectionName = FName("Rifle");
+			break;
+		case EWeaponType::EWT_Pistol:
+			SectionName = FName("Rifle");
+			break;
+		case EWeaponType::EWT_SubmachineGun:
+			SectionName = FName("Rifle");
+			break;
+		case EWeaponType::EWT_Shotgun:
+			SectionName = FName("Rifle");
+			break;
+		case EWeaponType::EWT_SniperRifle:
+			SectionName = FName("Rifle");
+			break;
+		case EWeaponType::EWT_GrenadeLauncher:
+			SectionName = FName("Rifle");
+			break;
+		}
+		if (IsHoldingThFlag())
+		{
+			SectionName = FName("Flag");
+		}
+		AnimInstance->Montage_JumpToSection(SectionName);
+	}	
 }
 
 void APSCharacter::EnableWeaponMeleeHitbox()
@@ -1461,12 +1676,13 @@ void APSCharacter::DisableWeaponMeleeHitbox()
 {
 	if (IsHoldingThFlag() && Combat && Combat->TheFlag)
 	{
-		Combat->TheFlag->DisableHitBox();
+		Combat->TheFlag->DisableHitBox();		
 	}
 	else if (Combat && Combat->EquippedWeapon)
 	{
-		Combat->EquippedWeapon->DisableHitBox();
+		Combat->EquippedWeapon->DisableHitBox();		
 	}
+	Combat->CombatState = ECombatState::ECS_Unoccupied;	
 }
 
 bool APSCharacter::IsLocallyReloading()
