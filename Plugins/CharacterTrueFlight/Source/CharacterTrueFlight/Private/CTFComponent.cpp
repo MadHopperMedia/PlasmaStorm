@@ -453,7 +453,7 @@ void UCTFComponent::TraceForGround(float DeltaTime)
 		TArray<AActor*> ActorsToIgnore;
 		UKismetSystemLibrary::SphereTraceSingle(this, Start, End, Radious, UEngineTypes::ConvertToTraceType(ECollisionChannel::ECC_Visibility),
 		true, ActorsToIgnore, EDrawDebugTrace::None, Hit, true);
-		if (Hit.IsValidBlockingHit())
+		if (Hit.bBlockingHit)
 		{
 
 			
@@ -515,14 +515,14 @@ void UCTFComponent::MoveCharacter(float DeltaTime)
 	FHitResult Hit;
 	
 	PlayerVelocity = (PlayerVelocity + DodgeVelocity) * DeltaTime * 100;
-	PlayerPawn->AddActorWorldOffset(PlayerVelocity, true, &Hit, ETeleportType::TeleportPhysics);
-	if (Hit.bBlockingHit)
+	PlayerPawn->AddActorWorldOffset(PlayerVelocity, true, &Hit);
+	if (Hit.IsValidBlockingHit())
 	{	
 		
-		BounceOffWallVector = FVector::VectorPlaneProject(PlayerVelocity, Hit.ImpactNormal * 1.001);
-		PlayerPawn->AddActorWorldOffset(BounceOffWallVector, true, nullptr, ETeleportType::TeleportPhysics);
+		BounceOffWallVector = FVector::VectorPlaneProject(PlayerVelocity, Hit.ImpactNormal * 1.0f);
+		PlayerPawn->AddActorWorldOffset(BounceOffWallVector, true);
 
-		ReflectionVector = FVector::VectorPlaneProject(PlayerVelocity, Hit.ImpactNormal * 1.001);
+		ReflectionVector = FVector::VectorPlaneProject(PlayerVelocity, Hit.ImpactNormal * 1.0f);
 		if (ReflectionVector.Z > 0)
 		{
 			ReflectionVector.Z = 0;
