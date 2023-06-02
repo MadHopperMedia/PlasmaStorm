@@ -405,7 +405,7 @@ void UCTFComponent::AddGravity(float DeltaTime)
 	if (!bIsGrounded && !bIsFlying && !bIsJumping)
 	{
 		
-		Gravity = GravityDirection * -GravityForce * GravityMultiplier;
+		Gravity = (GravityDirection * -GravityForce * GravityMultiplier) * DeltaTime;
 	}
 	else
 	{
@@ -416,7 +416,7 @@ void UCTFComponent::AddGravity(float DeltaTime)
 		UpVelocity = FMath::VInterpTo(UpVelocity, FVector::ZeroVector, DeltaTime, 1.5);
 	}
 
-	UpVelocity  = UpVelocity + Gravity / 100;
+	UpVelocity  = UpVelocity + Gravity;
 	UpVelocity.Z = FMath::Clamp(UpVelocity.Z, -TerminalVelocity, 100);
 
 	if (GEngine)
@@ -769,7 +769,7 @@ void UCTFComponent::PlayerJump(float DeltaTime)
 	else
 	{
 		bIsGrounded = false;
-		JumpVelocity = PlayerPawn->GetActorUpVector() * JumpForce;
+		JumpVelocity = PlayerPawn->GetActorUpVector() * JumpForce ;
 	}
 	
 	if (bBoostJumping)
@@ -779,7 +779,7 @@ void UCTFComponent::PlayerJump(float DeltaTime)
 		
 	}	
 	
-	UpVelocity = UKismetMathLibrary::Vector_ClampSizeMax(UpVelocity + JumpVelocity / 100, 50);
+	UpVelocity = UKismetMathLibrary::Vector_ClampSizeMax(UpVelocity + JumpVelocity / DeltaTime, 20);
 		
 }
 
@@ -810,6 +810,7 @@ void UCTFComponent::StopBoostJump()
 
 void UCTFComponent::JumpTimer()
 {
+	
 	GetWorld()->GetTimerManager().ClearTimer(EndJumpTimerHandle);
 	GetWorld()->GetTimerManager().ClearTimer(JumpTimerHandle);
 	GetWorld()->GetTimerManager().ClearTimer(BoostJumpTimerHandle);
@@ -838,7 +839,12 @@ void UCTFComponent::BoostJump()
 
 void UCTFComponent::Dodge(FVector Direction)
 {	
-	DodgeVelocity = (Direction * DodgeSpeed);
+	if (!GetWorld()) return;
+	DodgeVelocity = (Direction * DodgeSpeed / GetWorld()->DeltaTimeSeconds) / 10;  
+	if (GEngine)
+	{
+		//GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Cyan, FString::Printf(TEXT("%f"), DodgeVelocity.Size()));
+	}
 }
 
 void UCTFComponent::Crouch()
