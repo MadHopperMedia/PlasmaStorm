@@ -452,7 +452,7 @@ void UCTFComponent::TraceForGround(float DeltaTime)
 				
 		TArray<AActor*> ActorsToIgnore;
 		UKismetSystemLibrary::SphereTraceSingle(this, Start, End, Radious, UEngineTypes::ConvertToTraceType(ECollisionChannel::ECC_Visibility),
-		true, ActorsToIgnore, EDrawDebugTrace::None, Hit, true);
+		false, ActorsToIgnore, EDrawDebugTrace::None, Hit, true);
 		if (Hit.bBlockingHit)
 		{
 

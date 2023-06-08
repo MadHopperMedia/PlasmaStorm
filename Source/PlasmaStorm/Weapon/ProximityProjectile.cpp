@@ -35,7 +35,7 @@ void AProximityProjectile::TraceForPlayer()
 		{
 			if (HitPlayer != nullptr) return;
 			HitPlayer = Cast<APSCharacter>(Hit.GetActor());
-			if (HitPlayer)
+			if (HitPlayer && HitPlayer->GetIsFlying())
 			{
 				
 				ExplodeDamage();

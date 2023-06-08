@@ -123,7 +123,7 @@ void AProjectileWeapon::SpawnProjectile(const FVector& HitTarget)
 	const USkeletalMeshSocket* MuzzleFlashSocket = GetWeaponMesh()->GetSocketByName(FName("MuzzleFlash"));
 	if (MuzzleFlashSocket && World)
 	{
-		FTransform SocketTransform = MuzzleFlashSocket->GetSocketTransform(GetWeaponMesh());
+		FTransform SocketTransform = MuzzleFlashSocket->GetSocketTransform(GetWeaponMesh()) +  FTransform(GetOwner()->GetActorForwardVector() * 5);
 		FVector ToTarget = HitTarget - SocketTransform.GetLocation();
 		FRotator TargetRotation = ToTarget.Rotation();
 		FActorSpawnParameters SpawnParams;
