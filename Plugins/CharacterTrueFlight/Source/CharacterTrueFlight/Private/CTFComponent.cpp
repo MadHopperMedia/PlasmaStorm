@@ -427,7 +427,7 @@ void UCTFComponent::AddGravity(float DeltaTime)
 
 void UCTFComponent::TraceForGround(float DeltaTime)
 {
-	if (PlayerPawn && !bIsJumping)
+	if (PlayerPawn)
 	{
 		
 		FHitResult Hit;
@@ -440,22 +440,25 @@ void UCTFComponent::TraceForGround(float DeltaTime)
 			 Start = PlayerPawn->GetActorLocation();
 			 End = PlayerPawn->GetActorLocation() + PlayerPawn->GetActorForwardVector() * 110;
 		}
-		else
+		else 
 		{
 			Radious = TraceCapsuleRadious;
-			 Start = PlayerPawn->GetActorLocation() + GetOwnerUpVector() * 10;
+			 Start = PlayerPawn->GetActorLocation() + GetOwnerUpVector() * 75;
 			 End = PlayerPawn->GetActorLocation() + GetOwnerUpVector() * -TraceForGroundRange;
 		}
 		
 		
-
-				
 		TArray<AActor*> ActorsToIgnore;
 		UKismetSystemLibrary::SphereTraceSingle(this, Start, End, Radious, UEngineTypes::ConvertToTraceType(ECollisionChannel::ECC_Visibility),
 		false, ActorsToIgnore, EDrawDebugTrace::None, Hit, true);
 		if (Hit.bBlockingHit)
 		{
-
+			if (Hit.ImpactPoint.Z > PlayerPawn->GetActorLocation().Z + 10 && UpVelocity.Z > 0)
+			{
+				
+				//UpVelocity = FVector(0, 0, 0);				
+				
+			}
 			
 			float Slope;			
 			FVector UpVector = PlayerPawn->GetActorUpVector();
