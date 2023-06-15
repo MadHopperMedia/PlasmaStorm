@@ -155,7 +155,9 @@ protected:
 	bool bSliding = false;
 	UPROPERTY(BlueprintReadOnly)
 	FVector AnimationVelocity;
-
+	UPROPERTY(EditAnywhere)
+	float MaxUpVelocityWhileJumping = 10;
+	float JumpLimiter = 0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FVector GravityDirection = FVector(0.0f, 0.0f, 1.0f);
 

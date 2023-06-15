@@ -522,13 +522,13 @@ void UCTFComponent::MoveCharacter(float DeltaTime)
 	if (Hit.IsValidBlockingHit())
 	{	
 		
-		BounceOffWallVector = FVector::VectorPlaneProject(PlayerVelocity, Hit.ImpactNormal * 1.0f);
+		BounceOffWallVector = FVector::VectorPlaneProject(PlayerVelocity, Hit.ImpactNormal * 1.25f);
 		PlayerPawn->AddActorWorldOffset(BounceOffWallVector, true);
 
 		ReflectionVector = FVector::VectorPlaneProject(PlayerVelocity, Hit.ImpactNormal * 1.0f);
 		if (ReflectionVector.Z > 0)
 		{
-			ReflectionVector.Z = 0;
+			//ReflectionVector.Z = 0;
 		}
 	}
 	else
@@ -733,8 +733,10 @@ void UCTFComponent::JumpButtonPressed()
 		UpVelocity = FVector(0.0f, 0.0f, 1.f);
 		bWantsToJump = true;		
 		JumpTimer();
+		JumpLimiter = MaxUpVelocityWhileJumping;
 		if (bIsBoosting && bCanBoostJump)
 		{
+			JumpLimiter = MaxUpVelocityWhileJumping * 5;
 			BoostJump();
 			//GetWorld()->GetTimerManager().ClearTimer(JumpTimerHandle);
 		}
@@ -775,14 +777,19 @@ void UCTFComponent::PlayerJump(float DeltaTime)
 		JumpVelocity = PlayerPawn->GetActorUpVector() * JumpForce ;
 	}
 	
-	if (bBoostJumping)
+	if (bBoostJumping || bIsBoosting && bIsJumping)
 	{		
 		
-		JumpVelocity = PlayerPawn->GetActorUpVector() * 400  + (LookAtVector * 200 * ForwardInput); 
+		JumpVelocity = PlayerPawn->GetActorUpVector() * 1000  + (LookAtVector * 200 * ForwardInput); 
 		
-	}	
+	}
+	else
+	{
+		//JumpLimiter = MaxUpVelocityWhileJumping;
+	}
 	
 	UpVelocity = UKismetMathLibrary::Vector_ClampSizeMax(UpVelocity + JumpVelocity / DeltaTime, 20);
+	UpVelocity.Z = FMath::Clamp(UpVelocity.Z, -100, JumpLimiter);
 		
 }
 
